@@ -1,10 +1,12 @@
 (*<*)
 theory paper
-  imports Main
+  imports "Regular-Sets.Regular_Set"
 begin
 (*>*)
 
-text\<open>Hello. @{cite "Krauss-Nipkow-JAR"}.\<close>
+text\<open>Look here: @{thm Regular_Set.Arden}\<close>
+
+section \<open>Usage of functional data structures\<close>(*Todo?*)
 
 (*<*)
 end
