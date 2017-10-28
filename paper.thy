@@ -4,7 +4,7 @@ theory paper
 begin
 (*>*)
 
-text\<open>Look here: @{thm Regular_Set.Arden}\<close>
+text\<open>Testing: @{thm Regular_Set.Arden}\<close>
 
 section \<open>Usage of functional data structures\<close>(*Todo?*)
 
