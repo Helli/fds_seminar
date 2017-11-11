@@ -6,8 +6,30 @@ theory paper
 begin
 (*>*)
 
-text\<open>Testing: @{thm Regular_Set.Arden}\<close>
-thm Regular_Set.Arden
+declare[[names_short]]
+
+section\<open>Overview\<close>
+
+text\<open>Consider the following lemma, which is proven by word-length induction:
+@{thm [names_short] language_coinduct}
+Thus, we can obtain an equivalence proof by establishing such a relation \<open>\<sim>\<close> (called \<open>bisimulation\<close>).\<close>
+
+text\<open>Remember that relations are just sets of pairs. Our method will incrementally add language
+  pairs (represented by increasingly complex regular expressions), maintaining the relation's
+  bisimulation property. Once the examined regexes are added, equivalence for them is shown.\<close>
+
+section\<open>Nullability\<close>
+
+thm nullable_iff
+text \<open>@{thm nullable.simps}\<close>
+text \<open>If \<open>R\<close> is a bisimulation, for every pair \<open>(A,B)\<close>, \<open>A\<close> and \<open>B\<close> agree on nullability: @{thm
+  language_coinduct[of R "lang r1" "lang l2", folded nullable_iff]}.
+@{thm is_bisimulation_def}\<close>
+
+section\<open>ACI-normalization\<close>
+
+text\<open>@{const NDerivative.nTimes} and @{const NDerivative.nPlus} are part of @{const
+  NDerivative.norm}, working on already @{const NDerivative.norm}ed subterms.\<close>
 
 section\<open>Polymorphic method for standard-@{type rexp}\<close>
 
@@ -60,7 +82,7 @@ end
 abbreviation "AB \<equiv> Times (Atom A) (Atom B)"
 abbreviation "A_or_B \<equiv> Plus (Atom A) (Atom B)"
 
-text\<open>Trying to get a nontermination:\<close>
+text\<open>Trying to get a nontermination / false negative:\<close>
 lemma "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
   apply rexp
   done
@@ -71,6 +93,9 @@ abbreviation "b \<equiv> CHR ''b''"
 value "NDerivative.norm (Plus (Atom B) (Atom A))"
 
 section \<open>Usage of functional data structures\<close>(*Todo?*)
+
+text\<open>For now, the implementation uses lists.\<close>
+
 
 (*<*)
 end
