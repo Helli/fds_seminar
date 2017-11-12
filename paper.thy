@@ -31,6 +31,9 @@ section\<open>ACI-normalization\<close>
 text\<open>@{const NDerivative.nTimes} and @{const NDerivative.nPlus} are part of @{const
   NDerivative.norm}, working on already @{const NDerivative.norm}ed subterms.\<close>
 
+text\<open>We only need \<open>\<subseteq>\<close> in the lemma @{thm atoms_nTimes}. Without the extra simplification in @{const
+  NDerivative.nTimes}, we could prove \<open>=\<close>.\<close>
+
 section\<open>Polymorphic method for standard-@{type rexp}\<close>
 
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
@@ -66,8 +69,8 @@ lemma
 
 value "NDerivative.norm (Atom (CHR ''a''))"
 
-paragraph \<open>Minimal example for a strictly partial order\<close>
-datatype part_ord = A | B
+paragraph \<open>Small example for a strictly partial order\<close>
+datatype part_ord = A | B | C
 
 instantiation part_ord :: order
 begin
@@ -81,20 +84,90 @@ end
 
 abbreviation "AB \<equiv> Times (Atom A) (Atom B)"
 abbreviation "A_or_B \<equiv> Plus (Atom A) (Atom B)"
+abbreviation "B_or_A \<equiv> Plus (Atom B) (Atom A)"
+abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
+abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
 
 text\<open>Trying to get a nontermination / false negative:\<close>
 lemma "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
   apply rexp
   done
 
-abbreviation "a \<equiv> CHR ''a''"
-abbreviation "b \<equiv> CHR ''b''"
+lemma size_nPlus: "size (NDerivative.nPlus R1 R2) \<le> size R1 + size R2 + 1"
+  apply (induction rule: NDerivative.nPlus.induct)
+                      apply auto
+  done
 
-value "NDerivative.norm (Plus (Atom B) (Atom A))"
+lemma size_nTimes: "size (NDerivative.nTimes R1 R2) \<le> size R1 + size R2 + 1"
+  apply (induction rule: NDerivative.nTimes.induct) apply auto
+  done
+
+lemma size_norm: "size (NDerivative.norm R) \<le> size R"
+proof (induction R, simp_all)
+  fix R1 :: "'a rexp" and R2 :: "'a rexp"
+  assume "size (NDerivative.norm R1) \<le> size R1" "size (NDerivative.norm R2) \<le> size R2"
+  then have "1 + (size (NDerivative.norm R1) + size (NDerivative.norm R2)) \<le> Suc (size R1 + size R2)"
+    using add_le_mono by presburger
+  then show
+    "size (NDerivative.nPlus (NDerivative.norm R1) (NDerivative.norm R2)) \<le> Suc (size R1 + size R2)"
+    "size (NDerivative.nTimes (NDerivative.norm R1) (NDerivative.norm R2)) \<le> Suc (size R1 + size R2)"
+    using size_nPlus size_nTimes by (metis (no_types)
+        Orderings.order_class.dual_order.trans semiring_normalization_rules(24))+
+qed
+
+lemma "finite b1 \<Longrightarrow> finite {R . atoms R \<subseteq> b1 \<and> size R \<le> b2}"
+  oops
+
+lemma "finite {(NDerivative.norm ^^ k) R | k . True}"
+proof -
+  have "atoms ((NDerivative.norm ^^ k) R) \<subseteq> atoms R" for k
+    apply (induction k)
+     apply simp
+    using atoms_norm by auto
+  moreover have "size ((NDerivative.norm ^^ k) R) \<le> size R" for k
+    apply (induction k)
+    apply auto
+    using le_trans size_norm by blast
+  ultimately
+  show ?thesis oops
+
+value "(NDerivative.norm ^^ 1) r"
+value "(NDerivative.norm ^^ 2) r"
+value "(NDerivative.norm ^^ 3) r"
+value "(NDerivative.norm ^^ 4) r"
+value "(NDerivative.norm ^^ 5) r"
+
+value "(NDerivative.norm ^^ 1) s"
+value "(NDerivative.norm ^^ 2) s"
+value "(NDerivative.norm ^^ 3) s"
+value "(NDerivative.norm ^^ 4) s"
+value "(NDerivative.norm ^^ 5) s"
+
+value "let
+    nr = NDerivative.norm r;
+    ns = NDerivative.norm s;
+    as = Equivalence_Checking.add_atoms nr (Equivalence_Checking.add_atoms ns [])
+  in Equivalence_Checking.closure as (nr, ns)"
+
+lemma "lang r = lang s"
+  apply rexp
+  done
+
+lemma "lang (Star (Atom A)) \<noteq> lang (Star (Atom B))"
+  oops
 
 section \<open>Usage of functional data structures\<close>(*Todo?*)
 
+text\<open>The test @{term "p \<in> set ps'"} could be sped up maybe...\<close>
+
 text\<open>For now, the implementation uses lists.\<close>
+
+section \<open>Usage in Relation Algebras\<close>
+
+text \<open>Maybe relevant if relations are represented by some functional data structure?\<close>
+
+text \<open>The "reflection"-technique is kinda cool.\<close>
+
 
 
 (*<*)
