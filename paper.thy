@@ -225,7 +225,10 @@ proof -
   thus "lang r = lang s" by simp
 qed
 
-method rexp = rule soundness, eval
+lemma subset_eq_to_eq: "lang A \<subseteq> lang B \<longleftrightarrow> lang (Plus A B) = lang B"
+  by auto
+
+method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 
 section\<open>Testing the limits\<close>
 
@@ -251,9 +254,11 @@ abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
 abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
 
 text\<open>Trying to get a nontermination / false negative:\<close>
-lemma "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
-  apply rexp
-  done
+lemma
+  "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
+  "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<subseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
+  "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<supseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
+  by rexp
 
 lemma size_nPlus: "size (nPlus R1 R2) \<le> size R1 + size R2 + 1"
   apply (induction rule: nPlus.induct)
