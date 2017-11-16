@@ -105,7 +105,7 @@ Thus, we can obtain an equivalence proof by establishing such a relation \<open>
 
 But first of course, the authors prove it:
 
-@{theory_text \<open>
+@{theory_text\<open>
 
 proof -
   define ps' where "ps' = insert (Zero, Zero) ps"
@@ -182,9 +182,61 @@ lemma
   "lang (Plus A B) = lang (Plus B A)"                   --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
   "lang (Plus A A) = lang A"                            --\<open>\<^bold>\<open>I\<close>dempotence\<close>
   by auto
+text
+\<open>The first step of the equivalence checker must bring the input expressions into a normal form,
+ such that ACI-equilavent terms map to the same normal form. It also performs other minor
+ simplifications. The authors indicate the rough procedure for such a transformation, but omit
+ implementation details. The reason is as follows: As long as @{thm lang_norm} is fulfilled, errors at
+  this step would not 
+  lead to wrong results, but instead falsify completeness of the method (failing to identify
+ ACI-equivalent terms could only falsify Brozozowksi' termination proof, for the partial correctness,
+this is not needed).\<close>
+(*@{const nDeriv} and @{const}*)
+text\<open>
+@{const norm} operates bottom up, defering Plus-terms and Times-terms to auxiliary functions
+  which
+  associate their subterms in a fixed manner. nDeriv also sorts terms, in a reproducable way.
 
-text\<open>@{const nTimes} and @{const nPlus} are part of @{const
-  norm}, working on already @{const norm}ed subterms.\<close>
+  We will later also need this property:
+
+  @{thm atoms_norm}
+
+@{const nTimes} and @{const nPlus} are part of @{const
+  norm}, working on already @{const norm}ed subterms.
+
+ With the following definition of derivatives, we can proceed in the next section to describe the
+ bisimulation:
+
+  <todo>
+
+
+\<close>
+
+section\<open>Bisimulation\<close>
+
+text\<open>
+The following defines a bisimulation restricted to a final set, making it computable. (We will later use the set of atoms
+ in the initial expressions)
+
+@{thm is_bisimulation_def}
+
+It works like a certificate checker: given \<open>as\<close> and \<open>R\<close>, it tests whether the regular expressions in
+\<open>R\<close> contain only atoms in \<open>as\<close>, and describe a bisimulation according to section todo.
+
+@{thm bisim_lang_eq}
+
+<todo: Beweis gleich wie oben language-coinduct ? Sonst: Erklärungen>
+\<close>
+
+text\<open>With this lemma, one could construct the bisimulation with an untrusted piece of code, and
+ verify its result (\<open>R\<close>) afterwards, possibly gaining execution speed.
+However, this extra effort is not needed: The following checks the bisimulation property
+ on-the-fly, i.e. during its generation. Staying in the verified setting also helps unterstanding
+ what's going on. Also, Isabelle-code is easier to maintain. Probably, the authors stay in the 
+
+\<close>
+
+
 
 text\<open>We only need \<open>\<subseteq>\<close> in the lemma @{thm atoms_nTimes}. Without the extra simplification in @{const
   nTimes}, we could prove \<open>=\<close>.\<close>
@@ -197,7 +249,11 @@ text\<open>For purposes of the Logic (HOL being a logic of total functions) @{co
  has a value associated with it: If no number of iterations falsifies the while-condition, this is
  @{const None}. However, the code generator is set up to only use the unfolding equation @{thm
  while_option_unfold}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
-
+@{footnote \<open>We want to define and reason about a closure computation without having to prove its
+termination. For such situations, Isabelle's library defines a variant of the well-known
+while combinator, which is called while-option. It takes a test \<open>b :: \<alpha> \<Rightarrow> bool\<close>, a function
+\<open>c :: \<alpha> \<Rightarrow> \<alpha>\<close>, and a "state" \<open>s :: \<alpha>\<close>, and obeys the recursion equation\<close>}
+<todo als Zitat markieren>
 A specialisation for computing the transitive closure (which is exactly what we want) is already
   available in @{theory While_Combinator} as @{const rtrancl_while}, which operates 
 \<close>
