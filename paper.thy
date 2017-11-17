@@ -19,8 +19,8 @@ is also the only algorithm most textbooks teach: Convert both expressions into a
  this approach's correctness is obvious for CS graduates, verifying it is tedious, mostly because
  the formalization of automata theory requires a lot of notational overhead. Nipkow and Krauss@{cite
  "Krauss-Nipkow-JAR"} stress this complexity in their introduction, to motivate why they follow an
-alternative approach due to Brzozowski@{cite Brzozowski}. The
- development results in a ready-to-use proof method@{cite "Regular-Sets-AFP"} in Isabelle/HOL, replacing
+alternative approach due to Brzozowski@{cite Brzozowski}. The development results in a ready-to-use
+ proof method@{cite "Regular-Sets-AFP"} in Isabelle/HOL, replacing 
  the need for manual derivation of regular expression equivalences. The
  avoiding of automata theory and Kleene-algebras leads to a much succincter proof than other verified
 equivalent checkers for regular expressions.
@@ -31,17 +31,6 @@ concept  at some point after the \<^emph>\<open>Interactive Theorem Proving\<clo
  efficient and can handle arbitrary Kleene algebras, they need long and complex proofs for the verfication (~19000 lines).
 \<close>
 
-section\<open>Proof pearls\<close>
-text\<open>Not so often, experts publish articles so polished and clear, that they are called \<^emph>\<open>Proof
- pearl\<close>.
-The proof should be purposeful, and shorter than expected. The author references the work of
- Braibant and 
- Pous@{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
- the derivation. 
- The paper's strength is that it comletely? ignores standard textbook-methods and finds inspiration
- instead in the Brzozowski's paper@{cite "Brzozowski"}, which fits perfectly into the world of
- interactive theorem proving due to its simplicity.
-\<close>
 
 subsection\<open>Simplicity\<close>
 text\<open>Simplicity is of utmost importance for Isabelle: Not only are small, elegant proofs faster to
@@ -288,6 +277,11 @@ method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 
 section\<open>Testing the limits\<close>
 
+text\<open>Via associativity and commutativity, only finitely many equivalent regexes can arise (proof:
+ both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
+ fails to recognize idempotence, producing bigger and bigger regular expressions. The only @{const
+ norm}-step which increases the regex is @{term "nderiv a (Times r s)"}, so target that.
+\<close>
 text\<open>B\<close>
 
 paragraph \<open>Small example for a strictly partial order\<close>
@@ -392,8 +386,26 @@ text \<open>Maybe relevant if relations are represented by some functional data 
 
 text \<open>The "reflection"-technique is kinda cool.\<close>
 
+section\<open>Conclusion\<close>
 
+subsection\<open>Achievements\<close>
+text\<open>As I have mentioned above, the method simplifies interactive proof development in Isabelle/HOL.
+However, it also is an advancement of theoretical CS, as Brzozowski's simple algorithm was not given
+ enough credit before. Making things simpler, but too simple, as Einstein mentioned, is always a
+ scientific goal.
+\<close>
 
+subsection\<open>Proof pearls\<close>
+text\<open>Not so often, experts publish articles so polished and clear, that they are called \<^emph>\<open>Proof
+ pearl\<close>.
+The proof should be purposeful, and shorter than expected. The author references the work of
+ Braibant and 
+ Pous@{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
+ the derivation. 
+ The paper's strength is that it completely? ignores standard textbook-methods and finds inspiration
+ instead in the Brzozowski's paper@{cite "Brzozowski"}, which fits perfectly into the world of
+ interactive theorem proving due to its simplicity.
+\<close>
 (*<*)
 end
 (*>*)
