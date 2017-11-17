@@ -82,7 +82,7 @@ subsection\<open>Notation\<close>
 
 text\<open>todo\<close>
 
-subsection\<open>language coinduction\<close>
+subsection\<open>Language Coinduction\<close>
 
 text\<open>Consider the following lemma, which is proven by word-length induction:
 
@@ -155,8 +155,11 @@ Words use standard list syntax.
 
 subsection\<open>Nullability\<close>
 
+text\<open>Notice the notion of \<^emph>\<open>nullability\<close> for REs:\<close>
 thm nullable_iff
+text\<open>It can be computed like this:\<close>
 text \<open>@{thm nullable.simps}\<close>
+
 text \<open>If \<open>R\<close> is a bisimulation, for every pair \<open>(A,B)\<close>, \<open>A\<close> and \<open>B\<close> agree on nullability: @{thm
   language_coinduct[of R "lang r1" "lang l2", folded nullable_iff]}.
 @{thm is_bisimulation_def}\<close>
@@ -175,11 +178,15 @@ text
 \<open>The first step of the equivalence checker must bring the input expressions into a normal form,
  such that ACI-equilavent terms map to the same normal form. It also performs other minor
  simplifications. The authors indicate the rough procedure for such a transformation, but omit
- implementation details. The reason is as follows: As long as @{thm lang_norm} is fulfilled, errors at
-  this step would not 
+ implementation details. These are not relevant anyways: As long as @{thm lang_norm} is fulfilled (a
+ simple structural induction proves it), errors at this step would not 
   lead to wrong results, but instead falsify completeness of the method (failing to identify
  ACI-equivalent terms could only falsify Brozozowksi' termination proof, for the partial correctness,
-this is not needed).\<close>
+this is not needed).
+
+  However, Verifying completeness is not necessary for an Isabelle proof method: In the unlikely
+ case that the method hangs, a user could always just provide a structured proof in Isar.
+\<close>
 (*@{const nDeriv} and @{const}*)
 text\<open>
 @{const norm} operates bottom up, defering Plus-terms and Times-terms to auxiliary functions
@@ -204,8 +211,8 @@ text\<open>
 section\<open>Bisimulation\<close>
 
 text\<open>
-The following defines a bisimulation restricted to a final set, making it computable. (We will later use the set of atoms
- in the initial expressions)
+The following defines a bisimulation restricted to a final set, making it computable. (We will later
+ use the set of atoms in the initial expressions)
 
 @{thm is_bisimulation_def}
 
@@ -238,15 +245,25 @@ text\<open>For purposes of the Logic (HOL being a logic of total functions) @{co
  has a value associated with it: If no number of iterations falsifies the while-condition, this is
  @{const None}. However, the code generator is set up to only use the unfolding equation @{thm
  while_option_unfold}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
-@{footnote \<open>We want to define and reason about a closure computation without having to prove its
+@{footnote \<open>@{cite "Krauss-Nipkow-JAR"}: "We want to define and reason about a closure computation without having to prove its
 termination. For such situations, Isabelle's library defines a variant of the well-known
 while combinator, which is called while-option. It takes a test \<open>b :: \<alpha> \<Rightarrow> bool\<close>, a function
-\<open>c :: \<alpha> \<Rightarrow> \<alpha>\<close>, and a "state" \<open>s :: \<alpha>\<close>, and obeys the recursion equation\<close>}
-<todo als Zitat markieren>
-A specialisation for computing the transitive closure (which is exactly what we want) is already
-  available in @{theory While_Combinator} as @{const rtrancl_while}, which operates 
-\<close>
+\<open>c :: \<alpha> \<Rightarrow> \<alpha>\<close>, and a "state" \<open>s :: \<alpha>\<close>, and obeys the recursion equation
 
+@{thm while_option_unfold}"
+\<close>
+}
+
+A specialisation for computing the transitive closure (which is exactly what we want) is already
+  available in @{theory While_Combinator} as @{const rtrancl_while}, which operates
+
+
+Note that there are more efficient ways to compute the transitive closure@{cite
+ "Transitive-Closure-AFP"}@{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
+ interactive proofs, this is not needed.
+\<close>
+thm While_Combinator.rtrancl_while_step.simps
+thm rtrancl_while_def
 section\<open>Polymorphic method for standard-@{type rexp}\<close>
 
 text\<open>This following lemma and definition are copied from @{theory Equivalence_Checking}, with @{typ
