@@ -282,7 +282,6 @@ text\<open>Via associativity and commutativity, only finitely many equivalent re
  fails to recognize idempotence, producing bigger and bigger regular expressions. The only @{const
  norm}-step which increases the regex is @{term "nderiv a (Times r s)"}, so target that.
 \<close>
-text\<open>B\<close>
 
 paragraph \<open>Small example for a strictly partial order\<close>
 datatype part_ord = A | B | C
@@ -373,6 +372,17 @@ lemma "lang r = lang s"
 
 lemma "lang (Star (Atom A)) \<noteq> lang (Star (Atom B))"
   oops
+
+(*
+text\<open>We illustate the nontermination using the Isar proof language:\<close>
+notepad
+begin
+  have \<open>nderiv s = \<close> by simp
+  have \<open>... = \<close> by simp
+  have \<open>... = \<close> by simp
+  have \<open>... = \<close> by simp
+end
+*)
 
 section \<open>Usage of functional data structures\<close>(*Todo?*)
 
