@@ -10,6 +10,7 @@ alias nPlus = NDerivative.nPlus
 alias norm = NDerivative.norm
 alias add_atoms = Equivalence_Checking.add_atoms
 alias closure = Equivalence_Checking.closure
+alias nullable = Regular_Exp.nullable
 
 declare[[names_short]]
 (*>*)
@@ -22,51 +23,35 @@ text\<open>Two regular expressions (RE for short) are \<^emph>\<open>equivalent\
 
 A well-known result from theoretical CS is that the problem of RE equivalence is decidable, meaning
 that solving goals of the above form can be reduced to a mere computation. Thus, structured proofs
-often don't add understanding: They should be replaced by a simple command, increasing
- readability and maintainability.
+ often don't add understanding, they should be replaced by a simple proof method invocation,
+ increasing readability and maintainability.
+
 To prove decidability, most textbooks give this algorithm: Convert both REs into automata,
- determinize and minimize the result and check for equality (disregarding state identifiers).
+ determinise and minimise the result and check for equality (disregarding state identifiers).
  However, while
  this approach's correctness is obvious for CS graduates, verifying it is tedious, mostly because
- the formalization of automata theory requires a lot of notational overhead. Nipkow and Krauss@{cite
- "Krauss-Nipkow-JAR"} stress this complexity in their introduction, to motivate why they follow an
-alternative approach due to Brzozowski@{cite Brzozowski}. The development results in a ready-to-use
- proof method@{cite "Regular-Sets-AFP"} in Isabelle/HOL, replacing 
- the need for manual derivation of RE equivalences. The
- avoiding of automata theory and Kleene-algebras leads to a much succincter proof than other verified
-equivalent checkers for REs.
+ the formalization of all the needed automata theory requires a lot of work. Nipkow and Krauss@{cite
+ "Krauss-Nipkow-JAR"} follow an alternative approach first described by Brzozowski@{cite Brzozowski}.
+The development results in a ready-to-use proof method@{cite "Regular-Sets-AFP"} in Isabelle/HOL,
+ replacing the need for manual derivation of RE equivalences.
 
-What could possibly lead to such a large simplification? The authors must have developed their new
-concept  at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010 when Braibant and
- Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
- algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
- proofs for the verfication (about 19000 lines).
+  This paper explains this approach, and how it is implemented as of AFP2017 (@{url
+ "https://www.isa-afp.org"}). It hopes to give insight why such a succinct development (compared to
+ other verified RE equivalent checkers) is beautiful and desirable for interactive proofing.
 \<close>
-
-
-subsection\<open>Simplicity\<close>
-text\<open>Simplicity is of utmost importance for Isabelle: Not only are small, elegant proofs faster to
- re-run themselves (AFP is run several times a day to test conformance to the Isabelle development version),
-  also the prover process does not need to load a huge chunk of code whenever it encounters a usage
- of the proof method: As we see later, we can shift the entire computation to the @{method eval}
- method, which probably resides in fast memory anyways during a lengthy build process.
-\<close>
-
 
 section\<open>About the reference article\<close>
 
 text\<open>The purpose of the article@{cite "Krauss-Nipkow-JAR"} is to provide a new proof method for
   Isabelle/HOL. Users should not have to prove equivalence relations of REs
   themselves, but use a simple automatic command, saving time and work load. Ideally, this command should
- verify every correct equivalence, i.e. be complete (we don't worry about \<^bold>\<open>in\<close>equalities). However, as Nipkow
- writes, completeness "merely lets you sleep better". The reason is that proof methods are usually
+ verify every correct equivalence, i.e. be complete. However, as the authors write, completeness
+ "merely lets you sleep better".They still argue why completeness holds (following a proof by
+ Brzozowski@{cite "Brzozowski"}), but do not verify it. The reason is that proof methods are usually
  used interactively, and for small goals, meaning that a user can just \<^emph>\<open>try\<close> whether it solves the
- goal. He still argues why completeness holds (following a proof by Brzozowski@{cite "Brzozowski"}),
- but does not verify it.
+ goal.
 
 \<close>
-
-section\<open>Overview\<close>
 
 subsection\<open>What \<^emph>\<open>is\<close> in the paper\<close>
 text\<open>
@@ -74,23 +59,67 @@ text\<open>
   \<open>lang r1 = lang r2\<close>, ...
 \<^item> ...using the rule @{prop \<open>lang r1 \<subseteq> lang r2 \<longleftrightarrow> lang (Plus r1 r2) = lang r2\<close>}, also
   for \<open>lang r1 \<subseteq> lang r2\<close> (or \<open>lang r1 \<supseteq> lang r2\<close>)
-
 \<close>
-subsection\<open>What is \<^emph>\<open>not\<close> in the paper\<close>
+subsection\<open>What \<^emph>\<open>is not\<close> in the paper\<close>
 text\<open>
 \<^item> verified termination proofs for any of the above
 \<^item> a proof method for RE \<^emph>\<open>in\<close>equalities, i.e. goals of the form \<open>lang r1 \<noteq> lang r2\<close>
 \<close>
-text\<open>As an introduction, Nipkow and Krauss reference the scientific work of Brzozowski@{cite
- "Brzozowski"}.
 
-Remember the definition
+section\<open>Languages and REs\<close>
+
+subsection\<open>Notation\<close>
+
+text\<open>
+In the following, list syntax is used for word operations:
+\<close>
+type_synonym 'a lang = "'a list set"  \<comment>\<open>Languages are sets of lists.\<close>
+text\<open>@{term_type lang} is defined as usual.
+
+For REs, we have the identifiers
+
+@{const Zero} for the RE with @{thm Regular_Exp.lang.simps(1)} and
+
+@{const One} for the RE with @{thm Regular_Exp.lang.simps(2)}
+
+...referencing their properties in the corresponding Kleene algebra.
+Special syntax is completely avoided: All connectives are represented
+ with standard constructors:
+
+  @{term_type Atom}
+
+  @{term_type Plus}
+
+  @{term_type Times}
+
+  @{term_type Star}
+\<close>
+
+subsection\<open>Derivatives\<close>
+text\<open>Remember the standard definition of a \<^emph>\<open>language derivative\<close>
 
 @{thm Deriv_def[no_vars]}
 
-What remains to do, is to define a computable operation @{const nderiv} on REs which follows this
- equation:
+In his 1964 article \<^emph>\<open>Derivatives of Regular Expressions\<close>@{cite "Brzozowski"}, Brzozowski gives
+ computable rules to extend this notion to REs:
+\<close>
+primrec deriv :: "'a \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp"
+where
+  "deriv _ Zero = Zero"
+| "deriv _ One = Zero"
+| "deriv a (Atom b) = (if a = b then One else Zero)"
+| "deriv a (Plus r s) = Plus (deriv a r) (deriv a s)"
+| "deriv a (Times r s) =
+    (let r's = Times (deriv a r) s
+     in if nullable r then Plus r's (deriv a s) else r's)"
+| "deriv a (Star r) = Times (deriv a r) (Star r)"
 
+text\<open>...where nullable, defined as @{thm nullable_iff[no_vars]}, is computable as well (I omit that).\<close>
+
+lemma lang_deriv: "lang (deriv a r) = Deriv a (lang r)"
+by (induction r) (auto simp: Let_def nullable_iff)
+
+text\<open>
 @{thm lang_nderiv[no_vars]}
 <Beschreibung Rest vom Verfahren, todo>
 
@@ -98,18 +127,14 @@ What remains to do, is to define a computable operation @{const nderiv} on REs w
 
 text\<open>Remember that relations are just sets of pairs. Our method will incrementally add language
   pairs (represented by increasingly complex REs), maintaining the relation's
-  bisimulation property. Once the examined regexes are added, equivalence for them is shown.\<close>
+  bisimulation property. Once the examined REs are added, equivalence for them is shown.\<close>
 
-
-subsection\<open>Notation\<close>
-
-text\<open>todo\<close>
 
 subsection\<open>Language Coinduction\<close>
 
 text\<open>Consider the following lemma, which is proven by word-length induction:
 
-@{thm [names_short] language_coinduct}
+@{thm [names_short] language_coinduct[no_vars]}
 
 <todo: bisimulation(unten) vs. ~>
 
@@ -160,31 +185,7 @@ qed
 
 \<close>}\<close>
 
-section\<open>Regular Expressions\<close>
-subsection\<open>Notation\<close>
-
-text\<open>For REs, we have the identifiers
-
-@{const Zero} for the regex with @{thm Regular_Exp.lang.simps(1)} and
-
-@{const One} for the regex with @{thm Regular_Exp.lang.simps(2)}
-
-referencing their properties in the corresponding Kleene algebras.
-Other than that, special syntax is completely avoided: All connectives are represented
- with standard constructors (atoms need @{const Atom}, for instance).
-
-Words use standard list syntax.
-\<close>
-
-subsection\<open>Nullability\<close>
-
-text\<open>Notice the notion of \<^emph>\<open>nullability\<close> for REs:\<close>
-thm nullable_iff
-text\<open>It can be computed like this:\<close>
-text \<open>@{thm nullable.simps}\<close>
-
-text \<open>If \<open>R\<close> is a bisimulation, for every pair \<open>(A,B)\<close>, \<open>A\<close> and \<open>B\<close> agree on nullability: @{thm
-  language_coinduct[of R "lang r1" "lang l2", folded nullable_iff]}.
+text\<open>
 @{thm is_bisimulation_def}\<close>
 
 section\<open>ACI-normalization\<close>
@@ -349,19 +350,33 @@ lemma subset_eq_to_eq: "lang A \<subseteq> lang B \<longleftrightarrow> lang (Pl
 text\<open>Using @{doc eisbach}@{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
 method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 
-section\<open>Draft: Testing the limits\<close>
+section\<open>Draft: Testing the limits of termination\<close>
 
-text\<open>This section will be reworked if I manage to construct a counterexample for termination. It can be
-ignored for now.
+text\<open>Note that Brzozoswki's proof of termination requires the property that ACI-equivalent REs can
+ be identified, i.e. mapped to one representative. Nipkow and Krauss argue why their @{const
+ nderiv}-function maintains such an ACI-normal form, but they need the assumption that the atoms of
+ the REs conform to a total order.
+
+This is presently not reflected by the code@{cite "Regular-Sets-AFP"} @{term_type "check_eqv"}. The
+ reason is convenience for the user: Without the @{class linorder}-constraint, there is no need to
+ provide an instance proof for @{class linorder} before being able to apply the proof method: For
+ the correctness of the method, the total order is not needed.
 \<close>
-text\<open>Via associativity and commutativity, only finitely many equivalent regexes can arise (proof:
- both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
- fails to recognize idempotence, producing bigger and bigger REs. The only @{const
- norm}-step which increases the regex is @{term "nderiv a (Times r s)"}, so target that.
+text\<open>The rest of this section will be reworked if I manage to construct a counterexample for
+ termination. It can be ignored for now.
 \<close>
 
 subsection \<open>Small example for a strictly partial order\<close>
+
+text\<open>Via associativity and commutativity, only finitely many equivalent REs can arise (proof:
+ both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
+ fails to recognize idempotence, producing bigger and bigger REs. The only @{const norm}-step which
+ increases the RE is @{term "nderiv a (Times r s)"}, so target that.
+\<close>
+
 datatype part_ord = A | B | C
+
+text\<open>For finite types, one could always find a total order, but let's assume we don't.\<close>
 
 instantiation part_ord :: order
 begin
@@ -379,7 +394,7 @@ abbreviation "B_or_A \<equiv> Plus (Atom B) (Atom A)"
 abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
 abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
 
-text\<open>Trying to get a nontermination / false negative:\<close>
+text\<open>Trying to get a nontermination:\<close>
 lemma
   "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
   "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<subseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
@@ -484,6 +499,14 @@ However, it also is an advancement of theoretical CS, as Brzozowski's simple alg
  scientific goal.
 \<close>
 
+subsection\<open>Simplicity\<close>
+text\<open>Simplicity is of utmost importance for Isabelle: Not only are small, elegant proofs faster to
+ re-run themselves (AFP is run several times a day to test conformance to the Isabelle development version),
+  also the prover process does not need to load a huge chunk of code whenever it encounters a usage
+ of the proof method: As we see later, we can shift the entire computation to the @{method eval}
+ method, which probably resides in fast memory anyways during a lengthy build process.
+\<close>
+
 subsection\<open>Proof pearls\<close>
 text\<open>Not so often, experts publish articles so polished and clear, that they are called \<^emph>\<open>Proof
  pearl\<close>.
@@ -491,10 +514,21 @@ The proof should be purposeful, and shorter than expected. The author references
  Braibant and 
  Pous@{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
  the derivation. 
- The paper's strength is that it completely? ignores standard textbook-methods and finds inspiration
+ The paper's strength is that it mostly ignores standard textbook-methods and finds inspiration
  instead in the Brzozowski's paper@{cite "Brzozowski"}, which fits perfectly into the world of
  interactive theorem proving due to its simplicity.
 \<close>
+
+section\<open>Historical Remarks\<close>
+
+text\<open>
+What could possibly lead to such a large simplification? The authors must have developed their new
+concept  at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010 when Braibant and
+ Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
+ algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
+ proofs for the verfication (about 19000 lines).
+\<close>
+
 (*<*)
 end
 (*>*)
