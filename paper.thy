@@ -10,10 +10,21 @@ alias nPlus = NDerivative.nPlus
 alias norm = NDerivative.norm
 alias add_atoms = Equivalence_Checking.add_atoms
 alias closure = Equivalence_Checking.closure
+
+declare[[names_short]]
 (*>*)
 
-text\<open>The problem of equivalence between regular expressions is decidable. The simplest proof of this
-is also the only algorithm most textbooks teach: Convert both expressions into automata,
+section\<open>Introduction\<close>
+text\<open>Two regular expressions (RE for short) are \<^emph>\<open>equivalent\<close>, if and only if they represent the
+ same formal language, i.e.
+
+  @{prop "lang r1 = lang r2"}
+
+A well-known result from theoretical CS is that the problem of RE equivalence is decidable, meaning
+that solving goals of the above form can be reduced to a mere computation. Thus, structured proofs
+often don't add understanding: They should be replaced by a simple command, increasing
+ readability and maintainability.
+To prove decidability, most textbooks give this algorithm: Convert both REs into automata,
  determinize and minimize the result and check for equality (disregarding state identifiers).
  However, while
  this approach's correctness is obvious for CS graduates, verifying it is tedious, mostly because
@@ -21,14 +32,15 @@ is also the only algorithm most textbooks teach: Convert both expressions into a
  "Krauss-Nipkow-JAR"} stress this complexity in their introduction, to motivate why they follow an
 alternative approach due to Brzozowski@{cite Brzozowski}. The development results in a ready-to-use
  proof method@{cite "Regular-Sets-AFP"} in Isabelle/HOL, replacing 
- the need for manual derivation of regular expression equivalences. The
+ the need for manual derivation of RE equivalences. The
  avoiding of automata theory and Kleene-algebras leads to a much succincter proof than other verified
-equivalent checkers for regular expressions.
+equivalent checkers for REs.
 
 What could possibly lead to such a large simplification? The authors must have developed their new
 concept  at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010 when Braibant and
- Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired algorithm is quite
- efficient and can handle arbitrary Kleene algebras, they need long and complex proofs for the verfication (~19000 lines).
+ Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
+ algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
+ proofs for the verfication (about 19000 lines).
 \<close>
 
 
@@ -40,23 +52,35 @@ text\<open>Simplicity is of utmost importance for Isabelle: Not only are small, 
  method, which probably resides in fast memory anyways during a lengthy build process.
 \<close>
 
-declare[[names_short]]
 
-section\<open>Introduction\<close>
+section\<open>About the reference article\<close>
 
 text\<open>The purpose of the article@{cite "Krauss-Nipkow-JAR"} is to provide a new proof method for
-  Isabelle/HOL. Users should not have to prove equivalence relations of regular expressions
+  Isabelle/HOL. Users should not have to prove equivalence relations of REs
   themselves, but use a simple automatic command, saving time and work load. Ideally, this command should
- verify every correct equivalence, i.e. be complete (we don' worry about \<^bold>\<open>in\<close>equalities). However, as Nipkow
+ verify every correct equivalence, i.e. be complete (we don't worry about \<^bold>\<open>in\<close>equalities). However, as Nipkow
  writes, completeness "merely lets you sleep better". The reason is that proof methods are usually
  used interactively, and for small goals, meaning that a user can just \<^emph>\<open>try\<close> whether it solves the
- goal. He still argues why this works in most cases, but does not verify it.
+ goal. He still argues why completeness holds (following a proof by Brzozowski@{cite "Brzozowski"}),
+ but does not verify it.
 
 \<close>
 
 section\<open>Overview\<close>
 
-subsection\<open>What \<^emph>\<open>is\<close> in the procedure\<close>
+subsection\<open>What \<^emph>\<open>is\<close> in the paper\<close>
+text\<open>
+\<^item> a proof method for RE equivalences, i.e. goals of the form
+  \<open>lang r1 = lang r2\<close>, ...
+\<^item> ...using the rule @{prop \<open>lang r1 \<subseteq> lang r2 \<longleftrightarrow> lang (Plus r1 r2) = lang r2\<close>}, also
+  for \<open>lang r1 \<subseteq> lang r2\<close> (or \<open>lang r1 \<supseteq> lang r2\<close>)
+
+\<close>
+subsection\<open>What is \<^emph>\<open>not\<close> in the paper\<close>
+text\<open>
+\<^item> verified termination proofs for any of the above
+\<^item> a proof method for RE \<^emph>\<open>in\<close>equalities, i.e. goals of the form \<open>lang r1 \<noteq> lang r2\<close>
+\<close>
 text\<open>As an introduction, Nipkow and Krauss reference the scientific work of Brzozowski@{cite
  "Brzozowski"}.
 
@@ -64,7 +88,7 @@ Remember the definition
 
 @{thm Deriv_def[no_vars]}
 
-What remains to do, is to define a computable operation @{const nderiv} on regular expressions which follows this
+What remains to do, is to define a computable operation @{const nderiv} on REs which follows this
  equation:
 
 @{thm lang_nderiv[no_vars]}
@@ -73,10 +97,9 @@ What remains to do, is to define a computable operation @{const nderiv} on regul
 \<close>
 
 text\<open>Remember that relations are just sets of pairs. Our method will incrementally add language
-  pairs (represented by increasingly complex regular expressions), maintaining the relation's
+  pairs (represented by increasingly complex REs), maintaining the relation's
   bisimulation property. Once the examined regexes are added, equivalence for them is shown.\<close>
 
-subsection\<open>What is \<^emph>\<open>not\<close> in the procedure\<close>
 
 subsection\<open>Notation\<close>
 
@@ -140,7 +163,7 @@ qed
 section\<open>Regular Expressions\<close>
 subsection\<open>Notation\<close>
 
-text\<open>For regular expressions, we have the identifiers
+text\<open>For REs, we have the identifiers
 
 @{const Zero} for the regex with @{thm Regular_Exp.lang.simps(1)} and
 
@@ -166,14 +189,25 @@ text \<open>If \<open>R\<close> is a bisimulation, for every pair \<open>(A,B)\<
 
 section\<open>ACI-normalization\<close>
 
-text\<open>Regular expressions \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-equivalent\<close>@{cite "Krauss-Nipkow-JAR"} /
- \<^emph>\<open>similar\<close>@{cite Brzozowski}, if one can be transformed into the other using only the follwing
+text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-equivalent\<close>@{cite "Krauss-Nipkow-JAR"} /
+ \<^emph>\<open>similar\<close>@{cite Brzozowski}, if one can be transformed into the other using only the following
   rules:\<close>
 lemma
-  "lang (Plus (Plus A B) C) = lang (Plus A (Plus B C))" --\<open>\<^bold>\<open>A\<close>ssociativity\<close>
-  "lang (Plus A B) = lang (Plus B A)"                   --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
-  "lang (Plus A A) = lang A"                            --\<open>\<^bold>\<open>I\<close>dempotence\<close>
-  by auto
+  "lang (Plus (Plus A B) C) = lang (Plus A (Plus B C))"
+  "lang (Times (Times A B) C) = lang (Times A (Times B C))" --\<open>\<^bold>\<open>A\<close>ssociativity\<close>
+  "lang (Plus A B) = lang (Plus B A)"                       --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
+  "lang (Plus A A) = lang A"                                --\<open>\<^bold>\<open>I\<close>dempotence\<close>
+  by (auto simp: conc_assoc)
+
+text\<open>In the following, we will call a RE \<^emph>\<open>normed\<close> if
+  \<^item> nested concatenation are parenthesised to the right
+  \<^item> nested choices are also parenthesised to the right and also sorts them:
+    Atoms first, then @{const Star}-terms, then concatenations
+    (This order is arbitrary, but fixed).
+
+The goal is that @{const nderiv} maintains this property, meaning that ACI-equivalent terms can be
+identified.
+\<close>
 text
 \<open>The first step of the equivalence checker must bring the input expressions into a normal form,
  such that ACI-equilavent terms map to the same normal form. It also performs other minor
@@ -187,11 +221,12 @@ this is not needed).
   However, Verifying completeness is not necessary for an Isabelle proof method: In the unlikely
  case that the method hangs, a user could always just provide a structured proof in Isar.
 \<close>
-(*@{const nDeriv} and @{const}*)
+
+(*Todo: Das nächste erst am Ende bei der Erklärung vom main loop?*)
 text\<open>
 @{const norm} operates bottom up, defering Plus-terms and Times-terms to auxiliary functions
   which
-  associate their subterms in a fixed manner. nDeriv also sorts terms, in a reproducable way.
+  associate their subterms in a fixed manner.
 
   We will later also need this property:
 
@@ -199,12 +234,17 @@ text\<open>
 
 @{const nTimes} and @{const nPlus} are part of @{const
   norm}, working on already @{const norm}ed subterms.
+ @{const nderiv} operates on @{const norm}ed terms output @{const norm}ed terms again. This fact is
+ not needed for partial correctness, and therefore not verified.
+
 
  With the following definition of derivatives, we can proceed in the next section to describe the
  bisimulation:
 
-  <todo>
+@{thm nderiv.simps}
 
+These rules are obviously designed to fulfill @{thm lang_nderiv}, which is shown by structural
+ induction.
 
 \<close>
 
@@ -216,7 +256,7 @@ The following defines a bisimulation restricted to a final set, making it comput
 
 @{thm is_bisimulation_def}
 
-It works like a certificate checker: given \<open>as\<close> and \<open>R\<close>, it tests whether the regular expressions in
+It works like a certificate checker: given \<open>as\<close> and \<open>R\<close>, it tests whether the REs in
 \<open>R\<close> contain only atoms in \<open>as\<close>, and describe a bisimulation according to section todo.
 
 @{thm bisim_lang_eq}
@@ -252,10 +292,19 @@ while combinator, which is called while-option. It takes a test \<open>b :: \<al
 
 @{thm while_option_unfold}"
 \<close>
-}
+}\<close>
 
+subsection\<open>Closure computation\<close>
+text\<open>
 A specialisation for computing the transitive closure (which is exactly what we want) is already
   available in @{theory While_Combinator} as @{const rtrancl_while}, which operates
+
+
+
+Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
+ nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in> R'\<close>.
+ Thus, it can be expressed using the library's @{const rtrancl_while}, which 
+ is how it is done as of AFP 2017@{cite "Regular-Sets-AFP"}.
 
 
 Note that there are more efficient ways to compute the transitive closure@{cite
@@ -264,9 +313,13 @@ Note that there are more efficient ways to compute the transitive closure@{cite
 \<close>
 thm While_Combinator.rtrancl_while_step.simps
 thm rtrancl_while_def
-section\<open>Polymorphic method for standard-@{type rexp}\<close>
+section\<open>A proof method for standard-@{type rexp}s\<close>
+text\<open>The authors choose to provide the equivalence checker only specialiced to @{typ "nat rexp"},
+ however, it also works for an arbitrary @{typ "'a::order rexp"}:
+\<close>
 
-text\<open>This following lemma and definition are copied from @{theory Equivalence_Checking}, with @{typ
+subsection\<open>Replaying the proof for arbitrary (but ordered) atoms\<close>
+text\<open>The following definition and lemma are copied from @{theory Equivalence_Checking}, with @{typ
   nat} replaced by @{typ "'a::order"}.\<close>
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
 "check_eqv r s =
@@ -287,20 +340,27 @@ proof -
   thus "lang r = lang s" by simp
 qed
 
+subsection\<open>Defining the proof method\<close>
+
+text\<open>First, we need to refine subset-goals to an equivalence check:\<close>
 lemma subset_eq_to_eq: "lang A \<subseteq> lang B \<longleftrightarrow> lang (Plus A B) = lang B"
   by auto
 
+text\<open>Using @{doc eisbach}@{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
 method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 
-section\<open>Testing the limits\<close>
+section\<open>Draft: Testing the limits\<close>
 
+text\<open>This section will be reworked if I manage to construct a counterexample for termination. It can be
+ignored for now.
+\<close>
 text\<open>Via associativity and commutativity, only finitely many equivalent regexes can arise (proof:
  both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
- fails to recognize idempotence, producing bigger and bigger regular expressions. The only @{const
+ fails to recognize idempotence, producing bigger and bigger REs. The only @{const
  norm}-step which increases the regex is @{term "nderiv a (Times r s)"}, so target that.
 \<close>
 
-paragraph \<open>Small example for a strictly partial order\<close>
+subsection \<open>Small example for a strictly partial order\<close>
 datatype part_ord = A | B | C
 
 instantiation part_ord :: order
@@ -401,6 +461,7 @@ begin
 end
 *)
 
+(*<*)
 section \<open>Usage of functional data structures\<close>(*Todo?*)
 
 text\<open>The test @{term "p \<in> set ps'"} could be sped up maybe...\<close>
@@ -412,6 +473,7 @@ section \<open>Usage in Relation Algebras\<close>
 text \<open>Maybe relevant if relations are represented by some functional data structure?\<close>
 
 text \<open>The "reflection"-technique is kinda cool.\<close>
+(*>*)
 
 section\<open>Conclusion\<close>
 
