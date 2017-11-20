@@ -103,7 +103,7 @@ text\<open>Remember the standard definition of a \<^emph>\<open>language derivat
 In his 1964 article \<^emph>\<open>Derivatives of Regular Expressions\<close>@{cite "Brzozowski"}, Brzozowski gives
  computable rules to extend this notion to REs:
 \<close>
-primrec deriv :: "'a \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp"
+fun deriv :: "'a \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp"
 where
   "deriv _ Zero = Zero"
 | "deriv _ One = Zero"
@@ -114,39 +114,52 @@ where
      in if nullable r then Plus r's (deriv a s) else r's)"
 | "deriv a (Star r) = Times (deriv a r) (Star r)"
 
-text\<open>...where nullable, defined as @{thm nullable_iff[no_vars]}, is computable as well (I omit that).\<close>
+text\<open>...where @{const nullable}, defined as \<open>nullable r \<longleftrightarrow> [] \<in> lang r\<close>, is computable as well
+  (omitted here).\<close>
 
 lemma lang_deriv: "lang (deriv a r) = Deriv a (lang r)"
 by (induction r) (auto simp: Let_def nullable_iff)
 
-text\<open>
-@{thm lang_nderiv[no_vars]}
-<Beschreibung Rest vom Verfahren, todo>
-
-\<close>
-
-text\<open>Remember that relations are just sets of pairs. Our method will incrementally add language
-  pairs (represented by increasingly complex REs), maintaining the relation's
-  bisimulation property. Once the examined REs are added, equivalence for them is shown.\<close>
-
+section\<open>Bisimulations\<close>
 
 subsection\<open>Language Coinduction\<close>
-
-text\<open>Consider the following lemma, which is proven by word-length induction:
-
-@{thm [names_short] language_coinduct[no_vars]}
-
-<todo: bisimulation(unten) vs. ~>
-
-Thus, we can obtain an equivalence proof by establishing such a relation \<open>\<sim>\<close> (called \<open>bisimulation\<close>).
-
-But first of course, the authors prove it:
-
-@{theory_text\<open>
-
+text\<open>Consider the following lemma, which is proven by word induction (i.e. list induction):
+\<close>
+lemma language_coinduct:
+assumes "\<And>K L. R K L \<Longrightarrow> ([] \<in> K \<longleftrightarrow> [] \<in> L)"
+assumes "\<And>K L x. R K L \<Longrightarrow> R (Deriv x K) (Deriv x L)"
+assumes "R K\<^sub>0 L\<^sub>0"
+shows "K\<^sub>0 = L\<^sub>0"
+proof (rule set_eqI)
+  fix w
+  show "w \<in> K\<^sub>0 \<longleftrightarrow> w \<in> L\<^sub>0" using assms
+    apply (induction w arbitrary: K\<^sub>0 L\<^sub>0)
+     apply (auto simp: Deriv_def)
+     apply blast+
+    done
+qed
+text\<open>Thus, we can obtain an equivalence proof by establishing such a relation \<open>R\<close> (called
+ \<^emph>\<open>bisimulation\<close>).
+\<close>
+subsection\<open>Computable variant\<close>
+text\<open>The following is the same for @{typ "'a rexp"} instead of languages themselves. Note that we
+ also switch to set-bounded quantification, to make this computable for finite \<open>as\<close> (we later set
+ \<open>as = atoms r1 \<union> atoms r2\<close>).
+\<close>
+definition is_bisimulation ::  "'a::order list \<Rightarrow> ('a rexp \<times> 'a rexp) set \<Rightarrow> bool"
+where
+"is_bisimulation as R \<longleftrightarrow>
+  (\<forall>(r,s)\<in> R. (atoms r \<union> atoms s \<subseteq> set as) \<and> (nullable r \<longleftrightarrow> nullable s) \<and>
+    (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R))"
+text\<open>@{const nderiv} is a variant of @{const deriv}, explained below.\<close>
+lemma bisim_lang_eq:
+assumes "is_bisimulation as ps"
+assumes "(r, s) \<in> ps"
+shows "lang r = lang s"
+\<comment>\<open>We can just reduce this to the above result. The AFP-proof is this one:\<close>
 proof -
   define ps' where "ps' = insert (Zero, Zero) ps"
-  from bisim have bisim': "is_bisimulation as ps'"
+  from \<open>is_bisimulation as ps\<close> have bisim': "is_bisimulation as ps'"
     by (auto simp: ps'_def is_bisimulation_def)
   let ?R = "\<lambda>K L. (\<exists>(r,s)\<in>ps'. K = lang r \<and> L = lang s)"
   show ?thesis
@@ -183,10 +196,15 @@ proof -
   qed  
 qed
 
-\<close>}\<close>
+text\<open>At this point, we already have a certificate checker: given \<open>as\<close> and \<open>ps\<close>, it tests whether the
+ REs in \<open>ps\<close> contain only atoms in \<open>as\<close>, and describe a bisimulation with \<open>(r,s)\<in>ps\<close>.
 
-text\<open>
-@{thm is_bisimulation_def}\<close>
+\<open>ps\<close> could even be constructed with untrusted code.
+
+However, it turns out we can iteratively construct \<open>ps\<close> using the same idea, such that the
+ termination of the while-loop already guarantees the premises of @{thm[source] bisim_lang_eq}.
+This construction 
+\<close>
 
 section\<open>ACI-normalization\<close>
 
@@ -194,15 +212,15 @@ text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-eq
  \<^emph>\<open>similar\<close>@{cite Brzozowski}, if one can be transformed into the other using only the following
   rules:\<close>
 lemma
-  "lang (Plus (Plus A B) C) = lang (Plus A (Plus B C))"
-  "lang (Times (Times A B) C) = lang (Times A (Times B C))" --\<open>\<^bold>\<open>A\<close>ssociativity\<close>
-  "lang (Plus A B) = lang (Plus B A)"                       --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
-  "lang (Plus A A) = lang A"                                --\<open>\<^bold>\<open>I\<close>dempotence\<close>
+  (*<*)"lang (Plus (Plus a b) c) = lang (Plus a (Plus b c))"(*>*)
+  "lang (Times (Times a b) c) = lang (Times a (Times b c))" --\<open>\<^bold>\<open>A\<close>ssociativity\<close>
+  "lang (Plus a b) = lang (Plus b a)"                       --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
+  "lang (Plus a a) = lang a"                                --\<open>\<^bold>\<open>I\<close>dempotence\<close>
   by (auto simp: conc_assoc)
 
 text\<open>In the following, we will call a RE \<^emph>\<open>normed\<close> if
   \<^item> nested concatenation are parenthesised to the right
-  \<^item> nested choices are also parenthesised to the right and also sorts them:
+  \<^item> nested choices are also parenthesised to the right and also sorted:
     Atoms first, then @{const Star}-terms, then concatenations
     (This order is arbitrary, but fixed).
 
@@ -213,14 +231,15 @@ text
 \<open>The first step of the equivalence checker must bring the input expressions into a normal form,
  such that ACI-equilavent terms map to the same normal form. It also performs other minor
  simplifications. The authors indicate the rough procedure for such a transformation, but omit
- implementation details. These are not relevant anyways: As long as @{thm lang_norm} is fulfilled (a
+ implementation details. These are not relevant anyways: As long as @{thm lang_norm[no_vars]} is fulfilled (a
  simple structural induction proves it), errors at this step would not 
   lead to wrong results, but instead falsify completeness of the method (failing to identify
  ACI-equivalent terms could only falsify Brozozowksi' termination proof, for the partial correctness,
 this is not needed).
 
-  However, Verifying completeness is not necessary for an Isabelle proof method: In the unlikely
- case that the method hangs, a user could always just provide a structured proof in Isar.
+  However, verifying completeness is not necessary for an Isabelle proof method: In the case that
+ the method hangs (very unlikely, a termination proof exists!), a user could always just provide a
+ structured proof in Isar.
 \<close>
 
 (*Todo: Das nächste erst am Ende bei der Erklärung vom main loop?*)
@@ -239,41 +258,10 @@ text\<open>
  not needed for partial correctness, and therefore not verified.
 
 
- With the following definition of derivatives, we can proceed in the next section to describe the
- bisimulation:
-
-@{thm nderiv.simps}
-
 These rules are obviously designed to fulfill @{thm lang_nderiv}, which is shown by structural
  induction.
 
 \<close>
-
-section\<open>Bisimulation\<close>
-
-text\<open>
-The following defines a bisimulation restricted to a final set, making it computable. (We will later
- use the set of atoms in the initial expressions)
-
-@{thm is_bisimulation_def}
-
-It works like a certificate checker: given \<open>as\<close> and \<open>R\<close>, it tests whether the REs in
-\<open>R\<close> contain only atoms in \<open>as\<close>, and describe a bisimulation according to section todo.
-
-@{thm bisim_lang_eq}
-
-<todo: Beweis gleich wie oben language-coinduct ? Sonst: Erklärungen>
-\<close>
-
-text\<open>With this lemma, one could construct the bisimulation with an untrusted piece of code, and
- verify its result (\<open>R\<close>) afterwards, possibly gaining execution speed.
-However, this extra effort is not needed: The following checks the bisimulation property
- on-the-fly, i.e. during its generation. Staying in the verified setting also helps unterstanding
- what's going on. Also, Isabelle-code is easier to maintain. Probably, the authors stay in the 
-
-\<close>
-
-
 
 text\<open>We only need \<open>\<subseteq>\<close> in the lemma @{thm atoms_nTimes}. Without the extra simplification in @{const
   nTimes}, we could prove \<open>=\<close>.\<close>
@@ -284,8 +272,8 @@ subsection\<open>Usage of @{const while_option}\<close>
 
 text\<open>For purposes of the Logic (HOL being a logic of total functions) @{const while_option} always
  has a value associated with it: If no number of iterations falsifies the while-condition, this is
- @{const None}. However, the code generator is set up to only use the unfolding equation @{thm
- while_option_unfold}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
+ @{const None}. However, the generated executable code only uses the unfolding equation @{thm
+ while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
 @{footnote \<open>@{cite "Krauss-Nipkow-JAR"}: "We want to define and reason about a closure computation without having to prove its
 termination. For such situations, Isabelle's library defines a variant of the well-known
 while combinator, which is called while-option. It takes a test \<open>b :: \<alpha> \<Rightarrow> bool\<close>, a function
@@ -348,8 +336,12 @@ lemma subset_eq_to_eq: "lang A \<subseteq> lang B \<longleftrightarrow> lang (Pl
   by auto
 
 text\<open>Using @{doc eisbach}@{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
-method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
-
+method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+ \<comment>\<open>If necessary, unfold
+ @{thm[source]
+ subset_eq_to_eq} to obtain an equality goal, then apply the soundness rule (backwards refinement),
+ then iterate the closure-check loop until it has the form \<open>Some([],_)\<close>,
+ which solves the goal. Repeat this if more subgoals are present.
+\<close>
 section\<open>Draft: Testing the limits of termination\<close>
 
 text\<open>Note that Brzozoswki's proof of termination requires the property that ACI-equivalent REs can
@@ -522,6 +514,10 @@ The proof should be purposeful, and shorter than expected. The author references
 section\<open>Historical Remarks\<close>
 
 text\<open>
+Brzozoswki's RE derivatives are seldom-mentioned, which is surprising, considering they are such a
+ natural counterpart to the (more often used) language derivatives.
+  A quick search suggest that it took until 1998 until the simple algorithm above was formulated
+ without automata theory.
 What could possibly lead to such a large simplification? The authors must have developed their new
 concept  at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010 when Braibant and
  Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
