@@ -37,7 +37,7 @@ The development results in a ready-to-use proof method@{cite "Regular-Sets-AFP"}
 
   This paper explains this approach, and how it is implemented as of AFP2017 (@{url
  "https://www.isa-afp.org"}). It hopes to give insight why such a succinct development (compared to
- other verified RE equivalent checkers) is beautiful and desirable for interactive proofing.
+ other verified RE equivalent checkers) is beautiful and desirable for interactive proving.
 \<close>
 
 section\<open>About the reference article\<close>
@@ -53,14 +53,14 @@ text\<open>The purpose of the article@{cite "Krauss-Nipkow-JAR"} is to provide a
 
 \<close>
 
-subsection\<open>What \<^emph>\<open>is\<close> in the paper\<close>
+subsection\<open>What \<^emph>\<open>is\<close> in the article\<close>
 text\<open>
 \<^item> a proof method for RE equivalences, i.e. goals of the form
   \<open>lang r1 = lang r2\<close>, ...
 \<^item> ...using the rule @{prop \<open>lang r1 \<subseteq> lang r2 \<longleftrightarrow> lang (Plus r1 r2) = lang r2\<close>}, also
   for \<open>lang r1 \<subseteq> lang r2\<close> (or \<open>lang r1 \<supseteq> lang r2\<close>)
 \<close>
-subsection\<open>What \<^emph>\<open>is not\<close> in the paper\<close>
+subsection\<open>What \<^emph>\<open>is not\<close> in the article\<close>
 text\<open>
 \<^item> verified termination proofs for any of the above
 \<^item> a proof method for RE \<^emph>\<open>in\<close>equalities, i.e. goals of the form \<open>lang r1 \<noteq> lang r2\<close>
@@ -156,7 +156,7 @@ lemma bisim_lang_eq:
 assumes "is_bisimulation as ps"
 assumes "(r, s) \<in> ps"
 shows "lang r = lang s"
-\<comment>\<open>We can just reduce this to the above result. The AFP-proof is this one:\<close>
+\<comment>\<open>We can reduce this to the above result. The AFP-proof is this one:\<close>
 proof -
   define ps' where "ps' = insert (Zero, Zero) ps"
   from \<open>is_bisimulation as ps\<close> have bisim': "is_bisimulation as ps'"
@@ -200,10 +200,8 @@ text\<open>At this point, we already have a certificate checker: given \<open>as
  REs in \<open>ps\<close> contain only atoms in \<open>as\<close>, and describe a bisimulation with \<open>(r,s)\<in>ps\<close>.
 
 \<open>ps\<close> could even be constructed with untrusted code.
-
 However, it turns out we can iteratively construct \<open>ps\<close> using the same idea, such that the
  termination of the while-loop already guarantees the premises of @{thm[source] bisim_lang_eq}.
-This construction 
 \<close>
 
 section\<open>ACI-normalization\<close>
@@ -212,7 +210,7 @@ text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-eq
  \<^emph>\<open>similar\<close>@{cite Brzozowski}, if one can be transformed into the other using only the following
   rules:\<close>
 lemma
-  (*<*)"lang (Plus (Plus a b) c) = lang (Plus a (Plus b c))"(*>*)
+(*<*)  "lang (Plus (Plus a b) c) = lang (Plus a (Plus b c))"(*>*)
   "lang (Times (Times a b) c) = lang (Times a (Times b c))" --\<open>\<^bold>\<open>A\<close>ssociativity\<close>
   "lang (Plus a b) = lang (Plus b a)"                       --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
   "lang (Plus a a) = lang a"                                --\<open>\<^bold>\<open>I\<close>dempotence\<close>
@@ -274,22 +272,19 @@ text\<open>For purposes of the Logic (HOL being a logic of total functions) @{co
  has a value associated with it: If no number of iterations falsifies the while-condition, this is
  @{const None}. However, the generated executable code only uses the unfolding equation @{thm
  while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
-@{footnote \<open>@{cite "Krauss-Nipkow-JAR"}: "We want to define and reason about a closure computation without having to prove its
+(*<*)
+@{footnote \<open>@{cite "Krauss-Nipkow-JAR"}: "We want to define and reason about a closure computation
+ without having to prove its 
 termination. For such situations, Isabelle's library defines a variant of the well-known
 while combinator, which is called while-option. It takes a test \<open>b :: \<alpha> \<Rightarrow> bool\<close>, a function
 \<open>c :: \<alpha> \<Rightarrow> \<alpha>\<close>, and a "state" \<open>s :: \<alpha>\<close>, and obeys the recursion equation
 
 @{thm while_option_unfold}"
 \<close>
-}\<close>
+}(*>*)\<close>
 
 subsection\<open>Closure computation\<close>
 text\<open>
-A specialisation for computing the transitive closure (which is exactly what we want) is already
-  available in @{theory While_Combinator} as @{const rtrancl_while}, which operates
-
-
-
 Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
  nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in> R'\<close>.
  Thus, it can be expressed using the library's @{const rtrancl_while}, which 
@@ -336,11 +331,13 @@ lemma subset_eq_to_eq: "lang A \<subseteq> lang B \<longleftrightarrow> lang (Pl
   by auto
 
 text\<open>Using @{doc eisbach}@{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
-method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+ \<comment>\<open>If necessary, unfold
- @{thm[source]
+method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
+text\<open>An informal description: If necessary, unfold @{thm[source]
  subset_eq_to_eq} to obtain an equality goal, then apply the soundness rule (backwards refinement),
  then iterate the closure-check loop until it has the form \<open>Some([],_)\<close>,
  which solves the goal. Repeat this if more subgoals are present.
+
+<todo examples from below>
 \<close>
 section\<open>Draft: Testing the limits of termination\<close>
 
@@ -349,10 +346,15 @@ text\<open>Note that Brzozoswki's proof of termination requires the property tha
  nderiv}-function maintains such an ACI-normal form, but they need the assumption that the atoms of
  the REs conform to a total order.
 
-This is presently not reflected by the code@{cite "Regular-Sets-AFP"} @{term_type "check_eqv"}. The
- reason is convenience for the user: Without the @{class linorder}-constraint, there is no need to
- provide an instance proof for @{class linorder} before being able to apply the proof method: For
- the correctness of the method, the total order is not needed.
+This is presently not reflected by the code@{cite "Regular-Sets-AFP"}: @{const closure} has the
+ type
+
+\<open>'a::order list \<Rightarrow> ... \<Rightarrow> ...\<close>
+
+The
+ reason is convenience for the user: When only requiring @{class order}, there is no need to
+ provide an instance proof for @{class linorder} before being able to use the proof method: For
+ its partial correctness, the total order is not needed.
 \<close>
 text\<open>The rest of this section will be reworked if I manage to construct a counterexample for
  termination. It can be ignored for now.
@@ -360,9 +362,9 @@ text\<open>The rest of this section will be reworked if I manage to construct a 
 
 subsection \<open>Small example for a strictly partial order\<close>
 
-text\<open>Via associativity and commutativity, only finitely many equivalent REs can arise (proof:
+text\<open>Via \<^bold>\<open>associativity\<close> and \<^bold>\<open>commutativity\<close>, only finitely many equivalent REs can arise (proof:
  both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
- fails to recognize idempotence, producing bigger and bigger REs. The only @{const norm}-step which
+ fails to recognize \<^bold>\<open>idempotence\<close>, producing bigger and bigger REs. The only @{const norm}-step which
  increases the RE is @{term "nderiv a (Times r s)"}, so target that.
 \<close>
 
@@ -485,17 +487,16 @@ text \<open>The "reflection"-technique is kinda cool.\<close>
 section\<open>Conclusion\<close>
 
 subsection\<open>Achievements\<close>
-text\<open>As I have mentioned above, the method simplifies interactive proof development in Isabelle/HOL.
+text\<open>As mentioned above, the method simplifies interactive proof development in Isabelle/HOL.
 However, it also is an advancement of theoretical CS, as Brzozowski's simple algorithm was not given
- enough credit before. Making things simpler, but too simple, as Einstein mentioned, is always a
- scientific goal.
+ enough credit before.
 \<close>
 
-subsection\<open>Simplicity\<close>
-text\<open>Simplicity is of utmost importance for Isabelle: Not only are small, elegant proofs faster to
- re-run themselves (AFP is run several times a day to test conformance to the Isabelle development version),
+text\<open>Simplicity is desirable for an Isabelle proof method: Not only is a small, elegant
+ verification faster to 
+ re-run itself (AFP is run several times a day to test conformance to the Isabelle development version),
   also the prover process does not need to load a huge chunk of code whenever it encounters a usage
- of the proof method: As we see later, we can shift the entire computation to the @{method eval}
+ of the proof method: As we have seen, we can shift the entire computation to the @{method eval}
  method, which probably resides in fast memory anyways during a lengthy build process.
 \<close>
 
@@ -518,11 +519,13 @@ Brzozoswki's RE derivatives are seldom-mentioned, which is surprising, consideri
  natural counterpart to the (more often used) language derivatives.
   A quick search suggest that it took until 1998 until the simple algorithm above was formulated
  without automata theory.
-What could possibly lead to such a large simplification? The authors must have developed their new
-concept  at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010 when Braibant and
+
+Nipkow and Krauss must have developed their new
+concept at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010, when Braibant and
  Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
  algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
- proofs for the verfication (about 19000 lines).
+ proofs for the verfication (about 19000 lines compared to about 950 in the AFP entry's relevant
+ theories).
 \<close>
 
 (*<*)
