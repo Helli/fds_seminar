@@ -231,7 +231,34 @@ text\<open>For purposes of the Logic (HOL being a logic of total functions) @{co
  while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
 \<close>
 
-(*definition "clsre as = while_option test (step as)"*)
+text\<open>The while-condition is the following:\<close>
+
+fun test where "test (ws,_) \<longleftrightarrow> (case ws of [] \<Rightarrow> False | (p, q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q)"
+text\<open>The loop terminates
+  \<^item> if the worklist is empty (a suitable \<^emph>\<open>bisimulation\<close> was found) or
+  \<^item> if two derivs don't agree on nullability (a counterexample was found)\<close>
+
+text\<open>@{theory_text \<open>definition "closure as = while_option test (step as)"\<close>}\<close>
+
+text\<open>The following is the same as @{const is_bisimulation}, but with the work list elements not yet
+ processed:\<close>
+
+definition pre_bisim :: "'a::order list \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp \<Rightarrow> ('a rexp \<times> 'a rexp) list \<times> ('a rexp \<times> 'a rexp) set \<Rightarrow> bool"
+where
+"pre_bisim as r s = (\<lambda>(ws,R).
+ (r,s) \<in> R \<and> set ws \<subseteq> R \<and>
+ (\<forall>(r,s)\<in> R. atoms r \<union> atoms s \<subseteq> set as) \<and>
+ (\<forall>(r,s)\<in> R - set ws. (nullable r \<longleftrightarrow> nullable s) \<and>
+   (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R)))"
+
+text\<open>This is a suitable invariant:
+  \<^item> if @{const pre_bisim} holds initially, it also holds after a @{const step}
+  \<^item> the negated @{const test} together with the premise that the result  matches the pattern
+ \<open>Some([], _)\<close> (i.e. terminated with an empty work set) implies @{const is_bisimulation}, yielding
+ the desired equivalence via rule @{thm[source] bisim_lang_eq}
+
+This proof is in a formal form available as @{thm[source] closure_sound}.
+\<close>
 
 subsection\<open>Remarks\<close>
 text\<open>
@@ -340,8 +367,28 @@ text\<open>An informal description: If necessary, unfold @{thm[source]
  then iterate the closure-check loop until it has the form \<open>Some([],_)\<close>,
  which solves the goal. Repeat this if more subgoals are present.
 
-<todo examples from below>
+Examples:
 \<close>
+
+abbreviation "AB \<equiv> Times (Atom (CHR ''a'')) (Atom (CHR ''b''))"
+abbreviation "A_or_B \<equiv> Plus (Atom (CHR ''a'')) (Atom (CHR ''b''))"
+abbreviation "B_or_A \<equiv> Plus (Atom (CHR ''b'')) (Atom (CHR ''a''))"
+
+lemma
+  "lang (Times (Star (Plus One AB)) A_or_B) = lang (Times (Star (Plus AB One)) A_or_B)"
+  "lang (Times (Star (Plus Zero AB)) B_or_A) \<supseteq> lang (Times (Star (Plus AB One)) A_or_B)"
+  "lang (Times (Star (Plus One AB)) A_or_B) \<subseteq> lang (Times (Star (Plus AB One)) A_or_B)"
+  by rexp
+
+abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
+abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
+
+lemma "lang r = lang s"
+  by rexp
+
+lemma "lang (Star (Atom (CHR ''a''))) \<noteq> lang (Star (Atom (CHR ''b'')))"
+  oops \<comment>\<open>Not part of the method\<close>
+
 section\<open>Draft: Testing the limits of termination\<close>
 
 text\<open>Note that Brzozoswki's proof of termination requires the property that ACI-equivalent REs can
@@ -384,18 +431,6 @@ definition "a < b \<longleftrightarrow> False" for a b :: part_ord
 instance
   by standard (simp_all add: less_eq_part_ord_def less_part_ord_def)
 end
-
-abbreviation "AB \<equiv> Times (Atom A) (Atom B)"
-abbreviation "A_or_B \<equiv> Plus (Atom A) (Atom B)"
-abbreviation "B_or_A \<equiv> Plus (Atom B) (Atom A)"
-abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
-abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
-
-lemma
-  "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
-  "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<subseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
-  "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<supseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
-  by rexp
 
 (*<*)
 lemma size_nPlus: "size (nPlus R1 R2) \<le> size R1 + size R2 + 1"
@@ -455,12 +490,6 @@ value "let
     as = add_atoms nr (add_atoms ns [])
   in closure as (nr, ns)"
 (*>*)
-lemma "lang r = lang s"
-  apply rexp
-  done
-
-lemma "lang (Star (Atom A)) \<noteq> lang (Star (Atom B))"
-  oops
 
 (*
 text\<open>We illustate the nontermination using the Isar proof language:\<close>
