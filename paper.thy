@@ -267,7 +267,7 @@ Note that this is just the computation of the transitive closure of \<open>R\<cl
  Thus, it can be expressed using the library's @{const rtrancl_while}, which 
  is how it is done as of AFP 2017@{cite "Regular-Sets-AFP"}.
 
-Note that there are more efficient ways to compute the transitive closure@{cite
+Also note that there are more efficient ways to compute the transitive closure@{cite
  "Transitive-Closure-AFP"}@{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
  interactive proofs, this is not needed.
 \<close>
@@ -431,7 +431,6 @@ definition "a < b \<longleftrightarrow> False" for a b :: part_ord
 instance
   by standard (simp_all add: less_eq_part_ord_def less_part_ord_def)
 end
-
 (*<*)
 lemma size_nPlus: "size (nPlus R1 R2) \<le> size R1 + size R2 + 1"
   apply (induction rule: nPlus.induct)
@@ -490,7 +489,6 @@ value "let
     as = add_atoms nr (add_atoms ns [])
   in closure as (nr, ns)"
 (*>*)
-
 (*
 text\<open>We illustate the nontermination using the Isar proof language:\<close>
 notepad
@@ -501,7 +499,6 @@ begin
   have \<open>... = \<close> by simp
 end
 *)
-
 (*<*)
 section \<open>Usage of functional data structures\<close>(*Todo?*)
 
@@ -515,7 +512,6 @@ text \<open>Maybe relevant if relations are represented by some functional data 
 
 text \<open>The "reflection"-technique is kinda cool.\<close>
 (*>*)
-
 section\<open>Conclusion\<close>
 
 subsection\<open>Achievements\<close>
