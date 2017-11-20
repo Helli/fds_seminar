@@ -204,7 +204,48 @@ However, it turns out we can iteratively construct \<open>ps\<close> using the s
  termination of the while-loop already guarantees the premises of @{thm[source] bisim_lang_eq}.
 \<close>
 
-section\<open>ACI-normalization\<close>
+section\<open>Main loop\<close>
+
+text\<open>The approach is to build the relation by adding a pair that's missing for the @{const
+ is_bisimulation} property in every step.
+\<close>
+
+text\<open>\<open>succs\<close> computes the list of derivated RE pairs for all atoms:\<close>
+
+fun succs where "succs as (r, s) = map (\<lambda>a. (nderiv a r, nderiv a s)) as"
+
+text\<open>In each step, a pair is taken from the work set, added to the relation, and its derivatives are
+ in turn added to the work set if they are not yet accounted for:
+\<close>
+
+fun step where "step as (ws, ps) =
+  (let ps' = hd ws # ps;
+    new = [p\<leftarrow>succs as (hd ws) . p \<notin> set ps' \<union> set ws]
+  in (new @ tl ws, ps'))"
+
+subsection\<open>Usage of @{const while_option}\<close>
+
+text\<open>For purposes of the Logic (HOL being a logic of total functions) @{const while_option} always
+ has a value associated with it: If no number of iterations falsifies the while-condition, this is
+ @{const None}. However, the generated executable code only uses the unfolding equation @{thm
+ while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
+\<close>
+
+(*definition "clsre as = while_option test (step as)"*)
+
+subsection\<open>Remarks\<close>
+text\<open>
+Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
+ nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in> R'\<close>.
+ Thus, it can be expressed using the library's @{const rtrancl_while}, which 
+ is how it is done as of AFP 2017@{cite "Regular-Sets-AFP"}.
+
+Note that there are more efficient ways to compute the transitive closure@{cite
+ "Transitive-Closure-AFP"}@{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
+ interactive proofs, this is not needed.
+\<close>
+
+subsection\<open>Termination via ACI-normalization\<close>
 
 text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-equivalent\<close>@{cite "Krauss-Nipkow-JAR"} /
  \<^emph>\<open>similar\<close>@{cite Brzozowski}, if one can be transformed into the other using only the following
@@ -229,80 +270,42 @@ text
 \<open>The first step of the equivalence checker must bring the input expressions into a normal form,
  such that ACI-equilavent terms map to the same normal form. It also performs other minor
  simplifications. The authors indicate the rough procedure for such a transformation, but omit
- implementation details. These are not relevant anyways: As long as @{thm lang_norm[no_vars]} is fulfilled (a
- simple structural induction proves it), errors at this step would not 
-  lead to wrong results, but instead falsify completeness of the method (failing to identify
- ACI-equivalent terms could only falsify Brozozowksi' termination proof, for the partial correctness,
-this is not needed).
+ implementation details. These are not relevant anyways: As long as @{thm lang_norm[no_vars]} is
+ fulfilled (a simple structural induction proves it), errors at this step would not 
+  lead to wrong results, but instead falsify completeness of the method
 
   However, verifying completeness is not necessary for an Isabelle proof method: In the case that
  the method hangs (very unlikely, a termination proof exists!), a user could always just provide a
  structured proof in Isar.
 \<close>
 
-(*Todo: Das nächste erst am Ende bei der Erklärung vom main loop?*)
 text\<open>
-@{const norm} operates bottom up, defering Plus-terms and Times-terms to auxiliary functions
-  which
-  associate their subterms in a fixed manner.
+@{const norm} operates bottom up, deferring Plus-terms and Times-terms to auxiliary functions
+  which associate their subterms in a fixed manner.
+
+The rules are obviously designed to fulfill @{thm lang_nderiv[no_vars]} just like @{const deriv} does,
+ which is shown by structural induction. This part is needed in the soundness proof.
+
+ @{const nderiv} operating on @{const norm}ed terms outputs @{const norm}ed terms again. This fact is
+ not needed for partial correctness, and therefore not verified.
+
+It is, however, crucial for the termination argument:
+In the while-step, the filter \<open>p \<notin> set ps' \<union> set ws\<close> must throw out at least ACI-equivalent terms
+ (\<open>p\<close> is @{const norm}ed at that point).
+ Brzozowski showed@{cite "Brzozowski"} that this is enough for the work set to become empty
+ eventually.
 
   We will later also need this property:
 
-  @{thm atoms_norm}
-
-@{const nTimes} and @{const nPlus} are part of @{const
-  norm}, working on already @{const norm}ed subterms.
- @{const nderiv} operates on @{const norm}ed terms output @{const norm}ed terms again. This fact is
- not needed for partial correctness, and therefore not verified.
-
-
-These rules are obviously designed to fulfill @{thm lang_nderiv}, which is shown by structural
- induction.
-
+  @{thm atoms_norm[no_vars]}
 \<close>
 
-text\<open>We only need \<open>\<subseteq>\<close> in the lemma @{thm atoms_nTimes}. Without the extra simplification in @{const
-  nTimes}, we could prove \<open>=\<close>.\<close>
-
-section\<open>Main loop\<close>
-
-subsection\<open>Usage of @{const while_option}\<close>
-
-text\<open>For purposes of the Logic (HOL being a logic of total functions) @{const while_option} always
- has a value associated with it: If no number of iterations falsifies the while-condition, this is
- @{const None}. However, the generated executable code only uses the unfolding equation @{thm
- while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
-(*<*)
-@{footnote \<open>@{cite "Krauss-Nipkow-JAR"}: "We want to define and reason about a closure computation
- without having to prove its 
-termination. For such situations, Isabelle's library defines a variant of the well-known
-while combinator, which is called while-option. It takes a test \<open>b :: \<alpha> \<Rightarrow> bool\<close>, a function
-\<open>c :: \<alpha> \<Rightarrow> \<alpha>\<close>, and a "state" \<open>s :: \<alpha>\<close>, and obeys the recursion equation
-
-@{thm while_option_unfold}"
-\<close>
-}(*>*)\<close>
-
-subsection\<open>Closure computation\<close>
-text\<open>
-Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
- nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in> R'\<close>.
- Thus, it can be expressed using the library's @{const rtrancl_while}, which 
- is how it is done as of AFP 2017@{cite "Regular-Sets-AFP"}.
-
-
-Note that there are more efficient ways to compute the transitive closure@{cite
- "Transitive-Closure-AFP"}@{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
- interactive proofs, this is not needed.
-\<close>
-thm While_Combinator.rtrancl_while_step.simps
-thm rtrancl_while_def
 section\<open>A proof method for standard-@{type rexp}s\<close>
-text\<open>The authors choose to provide the equivalence checker only specialiced to @{typ "nat rexp"},
+text\<open>The authors choose to provide the equivalence checker only specialised to @{typ "nat rexp"},
  however, it also works for an arbitrary @{typ "'a::order rexp"}:
 \<close>
 
-subsection\<open>Replaying the proof for arbitrary (but ordered) atoms\<close>
+subsection\<open>@{const Equivalence_Checking.check_eqv} for arbitrary (but ordered) atoms\<close>
 text\<open>The following definition and lemma are copied from @{theory Equivalence_Checking}, with @{typ
   nat} replaced by @{typ "'a::order"}.\<close>
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
@@ -327,7 +330,7 @@ qed
 subsection\<open>Defining the proof method\<close>
 
 text\<open>First, we need to refine subset-goals to an equivalence check:\<close>
-lemma subset_eq_to_eq: "lang A \<subseteq> lang B \<longleftrightarrow> lang (Plus A B) = lang B"
+lemma subset_eq_to_eq: "lang a \<subseteq> lang b \<longleftrightarrow> lang (Plus a b) = lang b"
   by auto
 
 text\<open>Using @{doc eisbach}@{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
@@ -360,7 +363,7 @@ text\<open>The rest of this section will be reworked if I manage to construct a 
  termination. It can be ignored for now.
 \<close>
 
-subsection \<open>Small example for a strictly partial order\<close>
+paragraph \<open>Small example for a strictly partial order\<close>
 
 text\<open>Via \<^bold>\<open>associativity\<close> and \<^bold>\<open>commutativity\<close>, only finitely many equivalent REs can arise (proof:
  both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
@@ -388,13 +391,13 @@ abbreviation "B_or_A \<equiv> Plus (Atom B) (Atom A)"
 abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
 abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
 
-text\<open>Trying to get a nontermination:\<close>
 lemma
   "lang (Times (Star (Plus (Atom B) AB)) A_or_B) = lang (Times (Star (Plus AB (Atom B))) A_or_B)"
   "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<subseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
   "lang (Times (Star (Plus (Atom B) AB)) A_or_B) \<supseteq> lang (Times (Star (Plus AB (Atom B))) A_or_B)"
   by rexp
 
+(*<*)
 lemma size_nPlus: "size (nPlus R1 R2) \<le> size R1 + size R2 + 1"
   apply (induction rule: nPlus.induct)
                       apply auto
@@ -451,7 +454,7 @@ value "let
     ns = norm s;
     as = add_atoms nr (add_atoms ns [])
   in closure as (nr, ns)"
-
+(*>*)
 lemma "lang r = lang s"
   apply rexp
   done
@@ -503,7 +506,8 @@ text\<open>Simplicity is desirable for an Isabelle proof method: Not only is a s
 subsection\<open>Proof pearls\<close>
 text\<open>Not so often, experts publish articles so polished and clear, that they are called \<^emph>\<open>Proof
  pearl\<close>.
-The proof should be purposeful, and shorter than expected. The author references the work of
+The proof should be purposeful, and unexpected in its elegance and shortness. The authors compare
+ their technique to the work of
  Braibant and 
  Pous@{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
  the derivation. 
@@ -512,7 +516,7 @@ The proof should be purposeful, and shorter than expected. The author references
  interactive theorem proving due to its simplicity.
 \<close>
 
-section\<open>Historical Remarks\<close>
+subsection\<open>Historical Remarks\<close>
 
 text\<open>
 Brzozoswki's RE derivatives are seldom-mentioned, which is surprising, considering they are such a
@@ -520,8 +524,8 @@ Brzozoswki's RE derivatives are seldom-mentioned, which is surprising, consideri
   A quick search suggest that it took until 1998 until the simple algorithm above was formulated
  without automata theory.
 
-Nipkow and Krauss must have developed their new
-concept at some point after the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010, when Braibant and
+Nipkow and Krauss mention as inspiration the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010,
+ when Braibant and 
  Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
  algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
  proofs for the verfication (about 19000 lines compared to about 950 in the AFP entry's relevant
