@@ -251,7 +251,7 @@ where
  (\<forall>(r,s)\<in> R - set ws. (nullable r \<longleftrightarrow> nullable s) \<and>
    (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R)))"
 
-text\<open>This is a suitable invariant:
+text\<open>@{const pre_bisim} is a suitable invariant:
   \<^item> if @{const pre_bisim} holds initially, it also holds after a @{const step}
   \<^item> the negated @{const test} together with the premise that the result  matches the pattern
  \<open>Some([], _)\<close> (i.e. terminated with an empty work set) implies @{const is_bisimulation}, yielding
