@@ -71,7 +71,7 @@ section\<open>Languages and REs\<close>
 subsection\<open>Notation\<close>
 
 text\<open>
-In the following, list syntax is used for word operations:
+In Isabelle, list syntax is used for word operations:
 \<close>
 type_synonym 'a lang = "'a list set"  \<comment>\<open>Languages are sets of lists.\<close>
 text\<open>@{term_type lang} is defined as usual.
@@ -329,12 +329,12 @@ In the while-step, the filter \<open>p \<notin> set ps' \<union> set ws\<close> 
 
 section\<open>A proof method for standard-@{type rexp}s\<close>
 text\<open>The authors choose to provide the equivalence checker only specialised to @{typ "nat rexp"},
- however, it also works for an arbitrary @{typ "'a::order rexp"}:
+ however, it also works for an arbitrary \<open>'a::order rexp\<close>:
 \<close>
 
 subsection\<open>@{const Equivalence_Checking.check_eqv} for arbitrary (but ordered) atoms\<close>
 text\<open>The following definition and lemma are copied from @{theory Equivalence_Checking}, with @{typ
-  nat} replaced by @{typ "'a::order"}.\<close>
+  nat} replaced by \<open>'a::order\<close>.\<close>
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
 "check_eqv r s =
   (let nr = norm r; ns = norm s; as = add_atoms nr
@@ -394,15 +394,14 @@ section\<open>Draft: Testing the limits of termination\<close>
 text\<open>Note that Brzozoswki's proof of termination requires the property that ACI-equivalent REs can
  be identified, i.e. mapped to one representative. Nipkow and Krauss argue why their @{const
  nderiv}-function maintains such an ACI-normal form, but they need the assumption that the atoms of
- the REs conform to a total order.
+ the REs conform to some total order.
 
 This is presently not reflected by the code@{cite "Regular-Sets-AFP"}: @{const closure} has the
  type
 
 \<open>'a::order list \<Rightarrow> ... \<Rightarrow> ...\<close>
 
-The
- reason is convenience for the user: When only requiring @{class order}, there is no need to
+The reason is convenience for the user: When only requiring @{class order}, there is no need to
  provide an instance proof for @{class linorder} before being able to use the proof method: For
  its partial correctness, the total order is not needed.
 \<close>
