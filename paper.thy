@@ -409,7 +409,7 @@ text\<open>The rest of this section will be reworked if I manage to construct a 
  termination. It can be ignored for now.
 \<close>
 
-paragraph \<open>Small example for a strictly partial order\<close>
+paragraph \<open>Small example for a non-total order\<close>
 
 text\<open>Via \<^bold>\<open>associativity\<close> and \<^bold>\<open>commutativity\<close>, only finitely many equivalent REs can arise (proof:
  both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
