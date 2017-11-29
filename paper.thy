@@ -1,6 +1,8 @@
 (*<*)
 theory paper
-  imports "Regular-Sets.Regexp_Method"
+  imports 
+  (*"Regular-Sets.Equivalence_Checking2"*)
+  "Regular-Sets.Regexp_Method"
   "HOL-Library.Char_ord"
   "HOL-Eisbach.Eisbach"
 begin
@@ -156,7 +158,7 @@ lemma bisim_lang_eq:
 assumes "is_bisimulation as ps"
 assumes "(r, s) \<in> ps"
 shows "lang r = lang s"
-\<comment>\<open>We can reduce this to the above result. The AFP-proof is this one:\<close>
+\<comment>\<open>The AFP-proof reduces this to the above result:\<close>
 proof -
   define ps' where "ps' = insert (Zero, Zero) ps"
   from \<open>is_bisimulation as ps\<close> have bisim': "is_bisimulation as ps'"
@@ -391,6 +393,8 @@ lemma "lang (Star (Atom (CHR ''a''))) \<noteq> lang (Star (Atom (CHR ''b'')))"
 
 section\<open>Draft: Testing the limits of termination\<close>
 
+(*replace by comments about Not and Inter (extended REs)?*)
+
 text\<open>Note that Brzozoswki's proof of termination requires the property that ACI-equivalent REs can
  be identified, i.e. mapped to one representative. Nipkow and Krauss argue why their @{const
  nderiv}-function maintains such an ACI-normal form, but they need the assumption that the atoms of
@@ -498,19 +502,7 @@ begin
   have \<open>... = \<close> by simp
 end
 *)
-(*<*)
-section \<open>Usage of functional data structures\<close>(*Todo?*)
 
-text\<open>The test @{term "p \<in> set ps'"} could be sped up maybe...\<close>
-
-text\<open>For now, the implementation uses lists.\<close>
-
-section \<open>Usage in Relation Algebras\<close>
-
-text \<open>Maybe relevant if relations are represented by some functional data structure?\<close>
-
-text \<open>The "reflection"-technique is kinda cool.\<close>
-(*>*)
 section\<open>Conclusion\<close>
 
 subsection\<open>Achievements\<close>
