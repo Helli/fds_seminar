@@ -15,6 +15,23 @@ alias closure = Equivalence_Checking.closure
 alias nullable = Regular_Exp.nullable
 
 declare[[names_short]]
+
+abbreviation Times_syn :: "'a rexp \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp" (infixr "\<cdot>" 75) where
+  "a\<cdot>b \<equiv> Times a b"
+
+abbreviation Star_syn :: "'a rexp \<Rightarrow> 'a rexp" ("(_*)" [1000] 999) where
+  "a* \<equiv> Star a"
+
+abbreviation Plus_syn :: "'a rexp \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp" (infixr "+" 65) where
+  "a+b \<equiv> Plus a b"
+
+abbreviation L where "L \<equiv> lang"
+
+(*abbreviation \<emptyset> where "\<emptyset> \<equiv> (Zero :: 'a rexp)"*)
+
+abbreviation \<epsilon> where "\<epsilon> \<equiv> (One :: 'a rexp)"
+  oops
+OBACHT: Für Erklärung normales deriv hernehmen
 (*>*)
 
 section\<open>Introduction\<close>
@@ -372,9 +389,12 @@ text\<open>An informal description: If necessary, unfold @{thm[source]
 Examples:
 \<close>
 
-abbreviation "AB \<equiv> Times (Atom (CHR ''a'')) (Atom (CHR ''b''))"
-abbreviation "A_or_B \<equiv> Plus (Atom (CHR ''a'')) (Atom (CHR ''b''))"
-abbreviation "B_or_A \<equiv> Plus (Atom (CHR ''b'')) (Atom (CHR ''a''))"
+abbreviation "a \<equiv> Atom (CHR ''a'')"
+abbreviation "b \<equiv> Atom (CHR ''b'')"
+
+abbreviation (input) "AB \<equiv> Times a (Atom (CHR ''b''))"
+abbreviation (input) "A_or_B \<equiv> Plus (Atom (CHR ''a'')) (Atom (CHR ''b''))"
+abbreviation (input) "B_or_A \<equiv> Plus (Atom (CHR ''b'')) (Atom (CHR ''a''))"
 
 lemma
   "lang (Times (Star (Plus One AB)) A_or_B) = lang (Times (Star (Plus AB One)) A_or_B)"
