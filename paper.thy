@@ -129,8 +129,8 @@ where
 | "deriv a (Atom b) = (if a = b then One else Zero)"
 | "deriv a (Plus r s) = Plus (deriv a r) (deriv a s)"
 | "deriv a (Times r s) =
-    (let r's = Times (deriv a r) s
-     in if nullable r then Plus r's (deriv a s) else r's)"
+    (let drs = Times (deriv a r) s
+     in if nullable r then Plus drs (deriv a s) else drs)"
 | "deriv a (Star r) = Times (deriv a r) (Star r)"
 
 text\<open>...where @{const nullable}, defined as \<open>nullable r \<longleftrightarrow> [] \<in> lang r\<close>, is computable as well
@@ -258,6 +258,14 @@ text\<open>The loop terminates
   \<^item> if two derivs don't agree on nullability (a counterexample was found)\<close>
 
 text\<open>@{theory_text \<open>definition "closure as = while_option test (step as)"\<close>}\<close>
+
+hide_const closure while
+
+function while where "while tst stp state = (if tst state then while tst stp (stp state) else state)"
+  by auto termination sorry
+
+  oops
+defin closure 
 
 text\<open>The following is the same as @{const is_bisimulation}, but with the work list elements not yet
  processed:\<close>
@@ -569,5 +577,28 @@ Nipkow and Krauss mention as inspiration the \<^emph>\<open>Interactive Theorem 
 \<close>
 
 (*<*)
+section\<open>Things to copy\<close>
+thm bisim_lang_eq[no_vars]
+thm lang.simps
+thm deriv.simps[no_vars]
+
+thm closure_def
+thm rtrancl_while_def
+lemmas [code_unfold] = rtrancl_while_def
+term "Transitive_Closure.rtrancl"
+export_code closure in OCaml
+
+thm bisim_lang_eq
+
+hide_const r s succs
+fun condition where "condition (ws,ps) \<longleftrightarrow> (case ws of [] \<Rightarrow> False | (p, q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q)"
+
+fun succs where "succs as (r, s) = map (\<lambda>a. (nderiv a r, nderiv a s)) as"
+
+fun step where "step as (ws, ps) = (let ps' = hd ws#ps;
+  new = [p\<leftarrow>succs as (hd ws) . p \<notin> set ps' \<union> set ws]
+  in (new @ tl ws, ps'))"
+
+
 end
 (*>*)
