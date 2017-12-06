@@ -57,7 +57,7 @@ text\<open>The purpose of the article @{cite "Krauss-Nipkow-JAR"} is to provide 
 subsection\<open>What \<^emph>\<open>is\<close> in the article\<close>
 text\<open>
 \<^item> a proof method for RE equivalences, i.e. goals of the form
-  \<open>lang r1 = lang r2\<close>, ...
+  \<open>lang r1 = lang r2\<close>; ...
 \<^item> ...using the rule @{prop \<open>lang r1 \<subseteq> lang r2 \<longleftrightarrow> lang (Plus r1 r2) = lang r2\<close>}, also
   for \<open>lang r1 \<subseteq> lang r2\<close> (or \<open>lang r1 \<supseteq> lang r2\<close>)
 \<close>
@@ -86,14 +86,10 @@ For REs, we have the identifiers
 ...referencing their properties in the corresponding Kleene algebra.
 Special syntax is completely avoided: All connectives are represented
  with standard constructors:
-
-  @{term_type Atom}
-
-  @{term_type Plus}
-
-  @{term_type Times}
-
-  @{term_type Star}
+  \<^descr>@{term_type Atom}
+  \<^descr>@{term_type Plus}
+  \<^descr>@{term_type Times}
+  \<^descr>@{term_type Star}
 \<close>
 
 subsection\<open>Derivatives\<close>
@@ -101,8 +97,11 @@ text\<open>Remember the standard definition of a \<^emph>\<open>language derivat
 
 @{thm Deriv_def[no_vars]}
 
+As the derivative of a regular language is regular again, we know that a RE
+ describing it exists.
+
 In his 1964 article \<^emph>\<open>Derivatives of Regular Expressions\<close> @{cite "Brzozowski"}, Brzozowski gives
- computable rules to extend this notion to REs:
+ rules to construct it from a RE describing the original language:
 \<close>
 fun deriv :: "'a \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp"
 where
