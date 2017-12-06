@@ -93,7 +93,7 @@ Special syntax is completely avoided: All connectives are represented
 \<close>
 
 subsection\<open>Derivatives\<close>
-text\<open>Remember the standard definition of a \<^emph>\<open>language derivative\<close>
+text\<open>Remember the standard definition of a \<^emph>\<open>language derivative\<close> with respect to an atom \<open>x\<close>:
 
 @{thm Deriv_def[no_vars]}
 
@@ -143,21 +143,24 @@ text\<open>Thus, we can obtain an equivalence proof by establishing such a relat
 \<close>
 subsection\<open>Computable variant\<close>
 text\<open>The following is the same for @{typ "'a rexp"} instead of languages themselves. Note that we
- also switch to set-bounded quantification, to make this computable for finite \<open>as\<close> (we later set
+ also switch to set-bounded quantification (property 1 below), to make this computable for finite \<open>as\<close> (we later set
  \<open>as = atoms r1 \<union> atoms r2\<close>).
 \<close>
 definition is_bisimulation ::  "'a::order list \<Rightarrow> ('a rexp \<times> 'a rexp) set \<Rightarrow> bool"
 where
-"is_bisimulation as R \<longleftrightarrow>
-  (\<forall>(r,s)\<in> R. (atoms r \<union> atoms s \<subseteq> set as) \<and> (nullable r \<longleftrightarrow> nullable s) \<and>
-    (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R))"
-text\<open>@{const nderiv} is a variant of @{const deriv}, explained below.\<close>
+  "is_bisimulation as R \<longleftrightarrow>
+    (\<forall>(r,s)\<in> R.
+(*1*) atoms r \<union> atoms s \<subseteq> set as \<and>
+(*2*) (nullable r \<longleftrightarrow> nullable s) \<and>
+(*3*) (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R))"
+text\<open>@{const nderiv} is a variant of @{const deriv}, explained later.\<close>
 lemma bisim_lang_eq:
 assumes "is_bisimulation as ps"
 assumes "(r, s) \<in> ps"
 shows "lang r = lang s"
-\<comment>\<open>The AFP-proof reduces this to the above result:\<close>
 proof -
+  \<comment>\<open>This can easily be reduced to the above result.\<close>
+(*<*)
   define ps' where "ps' = insert (Zero, Zero) ps"
   from \<open>is_bisimulation as ps\<close> have bisim': "is_bisimulation as ps'"
     by (auto simp: ps'_def is_bisimulation_def)
@@ -193,21 +196,45 @@ proof -
         unfolding KL lang_nderiv[symmetric] by auto
       thus ?thesis by (auto simp: ps'_def)
     qed
-  qed  
+  qed
 qed
+(*>*)
 
-text\<open>At this point, we already have a certificate checker: given \<open>as\<close> and \<open>ps\<close>, it tests whether the
- REs in \<open>ps\<close> contain only atoms in \<open>as\<close>, and describe a bisimulation with \<open>(r,s)\<in>ps\<close>.
+text\<open>At this point, we already have a certificate checker: Given \<open>as\<close> and \<open>ps\<close>, it iterates over
+ all RE-pairs in \<open>ps\<close> and test whether they satisfy property 1,2 and 3 (3 needs another iteration
+ over \<open>as\<close>).
+Isabelle's proof method @{method eval} performs this without further setup:\<close>
 
-\<open>ps\<close> could even be constructed with untrusted code.
-However, it turns out we can iteratively construct \<open>ps\<close> using the same idea, such that the
- termination of the while-loop already guarantees the premises of @{thm[source] bisim_lang_eq}.
-\<close>
+abbreviation "a \<equiv> Atom CHR ''a''"
+
+lemma "is_bisimulation [CHR ''a''] {
+        (Zero, Zero),
+        (One, One),
+        (a, a),
+        (Times a a, Times a a),
+        (Times a (Times a a), Times (Times a a) a)
+        }"
+  by eval
+
+text\<open>Afterwards, if \<open>(r,s)\<in>ps\<close>, the desired RE equivalence is shown via rule @{thm[source]bisim_lang_eq}.\<close>
+
+text\<open>
+Such a certificate \<open>(as, ps)\<close> could be obtained from untrusted computations, and checked by
+ @{method eval}.
+However, it turns out that constructing the (already verified) bisimulation is just as
+ simple, removing the need to check it separately.\<close>
 
 section\<open>Main loop\<close>
 
-text\<open>The approach is to build the relation by adding a pair that's missing for the @{const
- is_bisimulation} property in every step.
+text\<open>
+We present a simple work set algorithm which iteratively
+  \<^item>identifies RE pairs missing for property 3 (these are the work set)
+  \<^item>adds one of them to the relation, checking that it satisfies property 1 and 2
+
+Initially, we put \<open>(r,s)\<close> in the work set, to ensure that it will be in the constructed relation.
+
+We can then prove that the
+ work set becoming empty already guarantees the premises of @{thm[source] bisim_lang_eq}.
 \<close>
 
 text\<open>\<open>succs\<close> computes the list of derivated RE pairs for all atoms:\<close>
@@ -357,7 +384,7 @@ qed
 subsection\<open>Defining the proof method\<close>
 
 text\<open>First, we need to refine subset-goals to an equivalence check:\<close>
-lemma subset_eq_to_eq: "lang a \<subseteq> lang b \<longleftrightarrow> lang (Plus a b) = lang b"
+lemma subset_eq_to_eq: "lang r \<subseteq> lang s \<longleftrightarrow> lang (Plus r s) = lang s"
   by auto
 
 text\<open>Using @{doc eisbach} @{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
@@ -416,7 +443,7 @@ paragraph \<open>Small example for a non-total order\<close>
 text\<open>Via \<^bold>\<open>associativity\<close> and \<^bold>\<open>commutativity\<close>, only finitely many equivalent REs can arise (proof:
  both rules do not increase the term size). Thus, the counterexample needs to be crafted so that norm
  fails to recognize \<^bold>\<open>idempotence\<close>, producing bigger and bigger REs. The only @{const norm}-step which
- increases the RE is @{term "nderiv a (Times r s)"}, so target that.
+ increases the RE is @{term "nderiv c (Times r s)"}, so target that.
 \<close>
 
 datatype part_ord = A | B | C
@@ -485,8 +512,8 @@ value "(norm ^^ 4) s"
 value "(norm ^^ 5) s"
 
 value "let
-    nr = norm r;
-    ns = norm s;
+    nr = norm (Times a (Times a a));
+    ns = norm (Times (Times a a) a);
     as = add_atoms nr (add_atoms ns [])
   in closure as (nr, ns)"
 (*>*)
@@ -526,7 +553,7 @@ The proof should be purposeful, and unexpected in its elegance and shortness. Th
  Pous @{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
  the derivation. 
  The paper's strength is that it mostly ignores standard textbook-methods and finds inspiration
- instead in the Brzozowski's paper @{cite "Brzozowski"}, which fits perfectly into the world of
+ instead in Brzozowski's paper @{cite "Brzozowski"}, which fits perfectly into the world of
  interactive theorem proving due to its simplicity.
 \<close>
 
