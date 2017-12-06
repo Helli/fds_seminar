@@ -25,17 +25,16 @@ text\<open>Two regular expressions (RE for short) are \<^emph>\<open>equivalent\
 
 A well-known result from theoretical CS is that the problem of RE equivalence is decidable, meaning
 that solving goals of the above form can be reduced to a mere computation. Thus, structured proofs
- often don't add understanding, they should be replaced by a simple proof method invocation,
+ often do not add understanding; they should be replaced by a simple proof method invocation,
  increasing readability and maintainability.
 
 To prove decidability, most textbooks give this algorithm: Convert both REs into automata,
  determinise and minimise the result and check for equality (disregarding state identifiers).
- However, while
- this approach's correctness is obvious for CS graduates, verifying it is tedious, mostly because
- the formalization of all the needed automata theory requires a lot of work. Nipkow and Krauss@{cite
- "Krauss-Nipkow-JAR"} follow an alternative approach first described by Brzozowski@{cite Brzozowski}.
-The development results in a ready-to-use proof method@{cite "Regular-Sets-AFP"} in Isabelle/HOL,
- replacing the need for manual derivation of RE equivalences.
+ However, while correctness of this approach is obvious for CS graduates, verifying it is tedious,
+ mostly because the formalization of all the needed automata theory requires a lot of work. Nipkow
+ and Krauss @{cite "Krauss-Nipkow-JAR"} follow an alternative approach first described by Brzozowski
+ @{cite Brzozowski}. The development results in a ready-to-use proof method @{cite
+ "Regular-Sets-AFP"} in Isabelle/HOL, replacing the need for manual derivation of RE equivalences.
 
   This paper explains this approach, and how it is implemented as of AFP2017 (@{url
  "https://www.isa-afp.org"}). It hopes to give insight why such a succinct development (compared to
@@ -44,12 +43,12 @@ The development results in a ready-to-use proof method@{cite "Regular-Sets-AFP"}
 
 section\<open>About the reference article\<close>
 
-text\<open>The purpose of the article@{cite "Krauss-Nipkow-JAR"} is to provide a new proof method for
+text\<open>The purpose of the article @{cite "Krauss-Nipkow-JAR"} is to provide a new proof method for
   Isabelle/HOL. Users should not have to prove equivalence relations of REs
   themselves, but use a simple automatic command, saving time and work load. Ideally, this command should
  verify every correct equivalence, i.e. be complete. However, as the authors write, completeness
  "merely lets you sleep better".They still argue why completeness holds (following a proof by
- Brzozowski@{cite "Brzozowski"}), but do not verify it. The reason is that proof methods are usually
+ Brzozowski @{cite "Brzozowski"}), but do not verify it. The reason is that proof methods are usually
  used interactively, and for small goals, meaning that a user can just \<^emph>\<open>try\<close> whether it solves the
  goal.
 
@@ -102,7 +101,7 @@ text\<open>Remember the standard definition of a \<^emph>\<open>language derivat
 
 @{thm Deriv_def[no_vars]}
 
-In his 1964 article \<^emph>\<open>Derivatives of Regular Expressions\<close>@{cite "Brzozowski"}, Brzozowski gives
+In his 1964 article \<^emph>\<open>Derivatives of Regular Expressions\<close> @{cite "Brzozowski"}, Brzozowski gives
  computable rules to extend this notion to REs:
 \<close>
 fun deriv :: "'a \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp"
@@ -238,7 +237,7 @@ text\<open>The while-condition is the following:\<close>
 fun test where "test (ws,_) \<longleftrightarrow> (case ws of [] \<Rightarrow> False | (p, q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q)"
 text\<open>The loop terminates
   \<^item> if the worklist is empty (a suitable \<^emph>\<open>bisimulation\<close> was found) or
-  \<^item> if two derivs don't agree on nullability (a counterexample was found)\<close>
+  \<^item> if two derivs do not agree on nullability (a counterexample was found)\<close>
 
 text\<open>@{theory_text \<open>definition "closure as = while_option test (step as)"\<close>}\<close>
 
@@ -267,17 +266,17 @@ text\<open>
 Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
  nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in> R'\<close>.
  Thus, it can be expressed using the library's @{const rtrancl_while}, which 
- is how it is done as of AFP 2017@{cite "Regular-Sets-AFP"}.
+ is how it is done as of AFP 2017 @{cite "Regular-Sets-AFP"}.
 
-Also note that there are more efficient ways to compute the transitive closure@{cite
- "Transitive-Closure-AFP"}@{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
+Also note that there are more efficient ways to compute the transitive closure @{cite
+ "Transitive-Closure-AFP"} @{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
  interactive proofs, this is not needed.
 \<close>
 
 subsection\<open>Termination via ACI-normalization\<close>
 
-text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-equivalent\<close>@{cite "Krauss-Nipkow-JAR"} /
- \<^emph>\<open>similar\<close>@{cite Brzozowski}, if one can be transformed into the other using only the following
+text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-equivalent\<close> @{cite "Krauss-Nipkow-JAR"} /
+ \<^emph>\<open>similar\<close> @{cite Brzozowski}, if one can be transformed into the other using only the following
   rules:\<close>
 lemma
 (*<*)  "lang (Plus (Plus a b) c) = lang (Plus a (Plus b c))"(*>*)
@@ -321,7 +320,7 @@ The rules are obviously designed to fulfill @{thm lang_nderiv[no_vars]} just lik
 It is, however, crucial for the termination argument:
 In the while-step, the filter \<open>p \<notin> set ps' \<union> set ws\<close> must throw out at least ACI-equivalent terms
  (\<open>p\<close> is @{const norm}ed at that point).
- Brzozowski showed@{cite "Brzozowski"} that this is enough for the work set to become empty
+ Brzozowski showed @{cite "Brzozowski"} that this is enough for the work set to become empty
  eventually.
 
   We will later also need this property:
@@ -362,7 +361,7 @@ text\<open>First, we need to refine subset-goals to an equivalence check:\<close
 lemma subset_eq_to_eq: "lang a \<subseteq> lang b \<longleftrightarrow> lang (Plus a b) = lang b"
   by auto
 
-text\<open>Using @{doc eisbach}@{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
+text\<open>Using @{doc eisbach} @{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
 method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 text\<open>An informal description: If necessary, unfold @{thm[source]
  subset_eq_to_eq} to obtain an equality goal, then apply the soundness rule (backwards refinement),
@@ -400,7 +399,7 @@ text\<open>Note that Brzozoswki's proof of termination requires the property tha
  nderiv}-function maintains such an ACI-normal form, but they need the assumption that the atoms of
  the REs conform to some total order.
 
-This is presently not reflected by the code@{cite "Regular-Sets-AFP"}: @{const closure} has the
+This is presently not reflected by the code @{cite "Regular-Sets-AFP"}: @{const closure} has the
  type
 
 \<open>'a::order list \<Rightarrow> ... \<Rightarrow> ...\<close>
@@ -416,14 +415,14 @@ text\<open>The rest of this section will be reworked if I manage to construct a 
 paragraph \<open>Small example for a non-total order\<close>
 
 text\<open>Via \<^bold>\<open>associativity\<close> and \<^bold>\<open>commutativity\<close>, only finitely many equivalent REs can arise (proof:
- both rules don't increase the term size). Thus, the counterexample needs to be crafted so that norm
+ both rules do not increase the term size). Thus, the counterexample needs to be crafted so that norm
  fails to recognize \<^bold>\<open>idempotence\<close>, producing bigger and bigger REs. The only @{const norm}-step which
  increases the RE is @{term "nderiv a (Times r s)"}, so target that.
 \<close>
 
 datatype part_ord = A | B | C
 
-text\<open>For finite types, one could always find a total order, but let's assume we don't.\<close>
+text\<open>For finite types, one could always find a total order, but let's assume we do not.\<close>
 
 instantiation part_ord :: order
 begin
@@ -525,10 +524,10 @@ text\<open>Not so often, experts publish articles so polished and clear, that th
 The proof should be purposeful, and unexpected in its elegance and shortness. The authors compare
  their technique to the work of
  Braibant and 
- Pous@{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
+ Pous @{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
  the derivation. 
  The paper's strength is that it mostly ignores standard textbook-methods and finds inspiration
- instead in the Brzozowski's paper@{cite "Brzozowski"}, which fits perfectly into the world of
+ instead in the Brzozowski's paper @{cite "Brzozowski"}, which fits perfectly into the world of
  interactive theorem proving due to its simplicity.
 \<close>
 
@@ -542,7 +541,7 @@ Brzozoswki's RE derivatives are seldom-mentioned, which is surprising, consideri
 
 Nipkow and Krauss mention as inspiration the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010,
  when Braibant and 
- Pous@{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
+ Pous @{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
  algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
  proofs for the verfication (about 19000 lines compared to about 950 in the AFP entry's relevant
  theories).
