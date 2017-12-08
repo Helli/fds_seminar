@@ -143,8 +143,10 @@ text\<open>Thus, we can obtain an equivalence proof by establishing such a relat
 \<close>
 subsection\<open>Computable variant\<close>
 text\<open>The following is the same for @{typ "'a rexp"} instead of languages themselves. Note that we
- also switch to set-bounded quantification (property 1 below), to make this computable for finite \<open>as\<close> (we later set
- \<open>as = atoms r1 \<union> atoms r2\<close>).
+ also switch to set-bounded quantification (property 1 below), to make this computable for finite
+ \<open>as\<close>. We can later set \<open>as = atoms r1 \<union> atoms r2\<close>: Words with symbols outside of this set can not
+ be derived from either \<open>r1\<close> or \<open>r2\<close>, so equivalence within this sub-alphabet implies overall 
+ equivalence.
 \<close>
 definition is_bisimulation ::  "'a::order list \<Rightarrow> ('a rexp \<times> 'a rexp) set \<Rightarrow> bool"
 where
@@ -326,10 +328,10 @@ text
  simplifications. The authors indicate the rough procedure for such a transformation, but omit
  implementation details. These are not relevant anyways: As long as @{thm lang_norm[no_vars]} is
  fulfilled (a simple structural induction proves it), errors at this step would not 
-  lead to wrong results, but instead falsify completeness of the method
+  lead to wrong results, but instead impede completeness of the method
 
   However, verifying completeness is not necessary for an Isabelle proof method: In the case that
- the method hangs (very unlikely, a termination proof exists!), a user could always just provide a
+ the method were to hang, a user could always just try a different proof method or provide a
  structured proof in Isar.
 \<close>
 
@@ -360,14 +362,18 @@ text\<open>The authors choose to provide the equivalence checker only specialise
 \<close>
 
 subsection\<open>@{const Equivalence_Checking.check_eqv} for arbitrary (but ordered) atoms\<close>
-text\<open>The following definition and lemma are copied from @{theory Equivalence_Checking}, with @{typ
-  nat} replaced by \<open>'a::order\<close>.\<close>
+text\<open>We replay the reproduce the definition and proof from @{theory Equivalence_Checking}, with
+ additional explanations and @{typ nat} replaced by \<open>'a::order\<close>.\<close>
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
-"check_eqv r s =
-  (let nr = norm r; ns = norm s; as = add_atoms nr
- (add_atoms ns [])
-   in case closure as (nr, ns) of
-     Some([],_) \<Rightarrow> True | _ \<Rightarrow> False)"
+"check_eqv r s =(
+  let
+    nr= norm r; (*bring r into normal form*)
+    ns= norm s; (*bring r into normal form*)
+    as= add_atoms nr (add_atoms ns []) (*identify atoms to check derivations of*)
+  in case closure as (nr, ns) of
+    Some([],_) \<Rightarrow> True (* bisimulation was constructed *)
+  | _ \<Rightarrow> False (* while condition failed due to a counterexample *)
+)"
 
 lemma soundness: 
 assumes "check_eqv r s" shows "lang r = lang s"
@@ -383,11 +389,17 @@ qed
 
 subsection\<open>Defining the proof method\<close>
 
-text\<open>First, we need to refine subset-goals to an equivalence check:\<close>
+text\<open>We use the @{command method} command from @{doc eisbach} @{cite "Matichuk:2016:EPM:2904234.2904264"},
+ an Isabelle tool for proof method definitions, to provide a simple invocation
+ possibility for the presented algorithm.
+\<close>
+
+text\<open>First, we want to refine subset-goals to an equivalence check, to make the method more
+  versatile:\<close>
 lemma subset_eq_to_eq: "lang r \<subseteq> lang s \<longleftrightarrow> lang (Plus r s) = lang s"
   by auto
 
-text\<open>Using @{doc eisbach} @{cite "Matichuk:2016:EPM:2904234.2904264"}, one could now define:\<close>
+text\<open>We can then define the method using the usual Isabelle proof method combinators:\<close>
 method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 text\<open>An informal description: If necessary, unfold @{thm[source]
  subset_eq_to_eq} to obtain an equality goal, then apply the soundness rule (backwards refinement),
@@ -539,9 +551,9 @@ However, it also is an advancement of theoretical CS, as Brzozowski's simple alg
 text\<open>Simplicity is desirable for an Isabelle proof method: Not only is a small, elegant
  verification faster to 
  re-run itself (AFP is run several times a day to test conformance to the Isabelle development
- version), the prover process also does not need to load a huge chunk of code whenever it encounters
- a usage of the proof method: As we have seen, we can shift the entire computation to the @{method eval}
- method, which probably resides in fast memory anyways during a lengthy build process.
+ version), the algorithm itself is also small, and has little dependencies.
+Thus, we do not a expect a large build time increase when using the new proof method in
+ other Isabelle projects.
 \<close>
 
 subsection\<open>Proof pearls\<close>
