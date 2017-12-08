@@ -391,7 +391,7 @@ text\<open>Using @{doc eisbach} @{cite "Matichuk:2016:EPM:2904234.2904264"}, one
 method rexp = (unfold subset_eq_to_eq)?, (rule soundness, eval)+
 text\<open>An informal description: If necessary, unfold @{thm[source]
  subset_eq_to_eq} to obtain an equality goal, then apply the soundness rule (backwards refinement),
- then iterate the closure-check loop until it has the form \<open>Some([],_)\<close>,
+ then iterate the closure-check loop (by @{method eval}) until it has the form \<open>Some([],_)\<close>,
  which solves the goal. Repeat this if more subgoals are present.
 
 Examples:
@@ -414,7 +414,7 @@ lemma "lang r = lang s"
   by rexp
 
 lemma "lang (Star (Atom (CHR ''a''))) \<noteq> lang (Star (Atom (CHR ''b'')))"
-  oops \<comment>\<open>Not part of the method\<close>
+  oops \<comment>\<open>correct, but not part of the method\<close>
 
 section\<open>Draft: Testing the limits of termination\<close>
 
@@ -532,15 +532,15 @@ section\<open>Conclusion\<close>
 
 subsection\<open>Achievements\<close>
 text\<open>As mentioned above, the method simplifies interactive proof development in Isabelle/HOL.
-However, it also is an advancement of theoretical CS, as Brzozowski's simple algorithm was not given
- enough credit before.
+However, it also is an advancement of theoretical CS, as Brzozowski's simple algorithm was seldom
+ considered before. Due to Nipkow's and Krauss' development, it might get more attention.
 \<close>
 
 text\<open>Simplicity is desirable for an Isabelle proof method: Not only is a small, elegant
  verification faster to 
- re-run itself (AFP is run several times a day to test conformance to the Isabelle development version),
-  also the prover process does not need to load a huge chunk of code whenever it encounters a usage
- of the proof method: As we have seen, we can shift the entire computation to the @{method eval}
+ re-run itself (AFP is run several times a day to test conformance to the Isabelle development
+ version), the prover process also does not need to load a huge chunk of code whenever it encounters
+ a usage of the proof method: As we have seen, we can shift the entire computation to the @{method eval}
  method, which probably resides in fast memory anyways during a lengthy build process.
 \<close>
 
@@ -552,7 +552,7 @@ The proof should be purposeful, and unexpected in its elegance and shortness. Th
  Braibant and 
  Pous @{cite Braibant2010}, whose verified equivalence checker is more efficient, but very complex in
  the derivation. 
- The paper's strength is that it mostly ignores standard textbook-methods and finds inspiration
+ The paper's strength is that it mostly ignores standard textbook methods and finds inspiration
  instead in Brzozowski's paper @{cite "Brzozowski"}, which fits perfectly into the world of
  interactive theorem proving due to its simplicity.
 \<close>
@@ -569,7 +569,7 @@ Nipkow and Krauss mention as inspiration the \<^emph>\<open>Interactive Theorem 
  when Braibant and 
  Pous @{cite "Braibant2010"} presented their tactic for the theorem prover coq. While their acquired
  algorithm is quite efficient and can handle arbitrary Kleene algebras, they need long and complex
- proofs for the verfication (about 19000 lines compared to about 950 in the AFP entry's relevant
+ proofs for the verification (about 19000 lines compared to about 950 in the AFP entry's relevant
  theories).
 \<close>
 
