@@ -253,8 +253,8 @@ fun step where "step as (ws, ps) =
   in (new @ tl ws, ps'))"
 
 subsection\<open>Usage of @{const while_option}\<close>
-
-text\<open>For purposes of the Logic (HOL being a logic of total functions) @{const while_option} always
+text\<open>In order to define the computation without having to prove termination, we use the @{const
+ while_option}-function from Isabelle's standard library. @{const while_option} always
  has a value associated with it: If no number of iterations falsifies the while-condition, this is
  @{const None}. However, the generated executable code only uses the unfolding equation @{thm
  while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
@@ -262,7 +262,9 @@ text\<open>For purposes of the Logic (HOL being a logic of total functions) @{co
 
 text\<open>The while-condition is the following:\<close>
 
-fun test where "test (ws,_) \<longleftrightarrow> (case ws of [] \<Rightarrow> False | (p, q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q)"
+fun test where "test (ws,_) \<longleftrightarrow> (case ws of
+  [] \<Rightarrow> False |
+  (p,q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q)"
 text\<open>The loop terminates
   \<^item> if the worklist is empty (a suitable \<^emph>\<open>bisimulation\<close> was found) or
   \<^item> if two derivs do not agree on nullability (a counterexample was found)\<close>
@@ -286,15 +288,16 @@ text\<open>@{const pre_bisim} is a suitable invariant:
  \<open>Some([], _)\<close> (i.e. terminated with an empty work set) implies @{const is_bisimulation}, yielding
  the desired equivalence via rule @{thm[source] bisim_lang_eq}
 
-This proof is in a formal form available as @{thm[source] closure_sound}.
+This proof is available as @{thm[source] closure_sound} in a formal form.
 \<close>
 
 subsection\<open>Remarks\<close>
 text\<open>
 Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
- nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in> R'\<close>.
- Thus, it can be expressed using the library's @{const rtrancl_while}, which 
- is how it is done as of AFP 2017 @{cite "Regular-Sets-AFP"}.
+ nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in>
+ R'\<close>.
+ Thus, it can be expressed using the library's @{const rtrancl_while} specialization of @{const
+ while_option}, which is how it is done as of AFP 2017 @{cite "Regular-Sets-AFP"}.
 
 Also note that there are more efficient ways to compute the transitive closure @{cite
  "Transitive-Closure-AFP"} @{cite "Roy_Floyd_Warshall-AFP"}, but for the small goals that arise in
@@ -313,11 +316,12 @@ lemma
   "lang (Plus a a) = lang a"                                --\<open>\<^bold>\<open>I\<close>dempotence\<close>
   by (auto simp: conc_assoc)
 
-text\<open>In the following, we will call a RE \<^emph>\<open>normed\<close> if
-  \<^item> nested concatenation are parenthesised to the right
+text\<open>In the following, we will call a RE \<^emph>\<open>normalized\<close> if
+  \<^item> nested concatenations are parenthesised to the right
   \<^item> nested choices are also parenthesised to the right and also sorted:
     Atoms first, then @{const Star}-terms, then concatenations
-    (This order is arbitrary, but fixed).
+    (This order is arbitrary, but fixed)
+  \<^item> within nested choices, every subterm occurs at most once.
 
 The goal is that @{const nderiv} maintains this property, meaning that ACI-equivalent terms can be
 identified.
@@ -342,12 +346,12 @@ text\<open>
 The rules are obviously designed to fulfill @{thm lang_nderiv[no_vars]} just like @{const deriv} does,
  which is shown by structural induction. This part is needed in the soundness proof.
 
- @{const nderiv} operating on @{const norm}ed terms outputs @{const norm}ed terms again. This fact is
+ @{const nderiv} operating on normalized terms outputs normalized terms again. This fact is
  not needed for partial correctness, and therefore not verified.
 
 It is, however, crucial for the termination argument:
 In the while-step, the filter \<open>p \<notin> set ps' \<union> set ws\<close> must throw out at least ACI-equivalent terms
- (\<open>p\<close> is @{const norm}ed at that point).
+ (\<open>p\<close> is normalized at that point).
  Brzozowski showed @{cite "Brzozowski"} that this is enough for the work set to become empty
  eventually.
 
@@ -362,15 +366,16 @@ text\<open>The authors choose to provide the equivalence checker only specialise
 \<close>
 
 subsection\<open>@{const Equivalence_Checking.check_eqv} for arbitrary (but ordered) atoms\<close>
-text\<open>We replay the reproduce the definition and proof from @{theory Equivalence_Checking}, with
- additional explanations and @{typ nat} replaced by \<open>'a::order\<close>.\<close>
+text\<open>We reproduce the definition and proof from @{theory Equivalence_Checking}, with additional
+  explanations and @{typ nat} replaced by \<open>'a::order\<close>.
+\<close>
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
 "check_eqv r s =(
   let
-    nr= norm r; (*bring r into normal form*)
-    ns= norm s; (*bring r into normal form*)
-    as= add_atoms nr (add_atoms ns []) (*identify atoms to check derivations of*)
-  in case closure as (nr, ns) of
+    r= norm r; (*normalize r*)
+    s= norm s; (*normalize s*)
+    as= add_atoms r (add_atoms s []) (*identify the atoms to check derivations of*)
+  in case closure as (r, s) of
     Some([],_) \<Rightarrow> True (* bisimulation was constructed *)
   | _ \<Rightarrow> False (* while condition failed due to a counterexample *)
 )"
