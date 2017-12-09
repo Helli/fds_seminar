@@ -55,6 +55,7 @@ text\<open>The purpose of the article @{cite "Krauss-Nipkow-JAR"} is to provide 
 \<close>
 
 subsection\<open>What \<^emph>\<open>is\<close> in the article\<close>
+text\<open>Nipkow and Krauss document an elegant development of\<close>
 text\<open>
 \<^item> a proof method for RE equivalences, i.e. goals of the form
   \<open>lang r1 = lang r2\<close>; ...
@@ -62,6 +63,7 @@ text\<open>
   for \<open>lang r1 \<subseteq> lang r2\<close> (or \<open>lang r1 \<supseteq> lang r2\<close>)
 \<close>
 subsection\<open>What \<^emph>\<open>is not\<close> in the article\<close>
+text\<open>The article stresses that it does \<^emph>\<open>not\<close> provide:\<close>
 text\<open>
 \<^item> verified termination proofs for any of the above
 \<^item> a proof method for RE \<^emph>\<open>in\<close>equalities, i.e. goals of the form \<open>lang r1 \<noteq> lang r2\<close>
@@ -83,8 +85,7 @@ For REs, we have the identifiers
 
 @{const One} for the RE with @{thm Regular_Exp.lang.simps(2)}
 
-...referencing their properties in the corresponding Kleene algebra.
-Special syntax is completely avoided: All connectives are represented
+Special syntax is completely avoided; all connectives are represented
  with standard constructors:
   \<^descr>@{term_type Atom}
   \<^descr>@{term_type Plus}
@@ -579,7 +580,7 @@ subsection\<open>Historical Remarks\<close>
 text\<open>
 Brzozoswki's RE derivatives are seldom-mentioned, which is surprising, considering they are such a
  natural counterpart to the (more often used) language derivatives.
-  A quick search suggest that it took until 1998 until the simple algorithm above was formulated
+  A quick search suggests that it took until 1998 until the simple algorithm above was formulated
  without automata theory.
 
 Nipkow and Krauss mention as inspiration the \<^emph>\<open>Interactive Theorem Proving\<close> conference 2010,
