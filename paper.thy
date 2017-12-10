@@ -259,13 +259,6 @@ text\<open>The loop terminates
 
 text\<open>@{theory_text \<open>definition "closure as = while_option test (step as)"\<close>}\<close>
 
-hide_const closure while
-
-function while where "while tst stp state = (if tst state then while tst stp (stp state) else state)"
-  by auto termination sorry
-
-  oops
-defin closure 
 
 text\<open>The following is the same as @{const is_bisimulation}, but with the work list elements not yet
  processed:\<close>
