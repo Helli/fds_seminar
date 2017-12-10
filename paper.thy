@@ -275,13 +275,13 @@ text\<open>@{theory_text \<open>definition "closure as = while_option test (step
 text\<open>The following is the same as @{const is_bisimulation}, but with the work list elements not yet
  processed:\<close>
 
-definition pre_bisim :: "'a::order list \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp \<Rightarrow> ('a rexp \<times> 'a rexp) list \<times> ('a rexp \<times> 'a rexp) set \<Rightarrow> bool"
+definition pre_bisim :: "'a::order list \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp \<Rightarrow> ('a rexp \<times> 'a rexp) list \<times> ('a rexp \<times> 'a rexp) list \<Rightarrow> bool"
 where
-"pre_bisim as r s = (\<lambda>(ws,R).
- (r,s) \<in> R \<and> set ws \<subseteq> R \<and>
- (\<forall>(r,s)\<in> R. atoms r \<union> atoms s \<subseteq> set as) \<and>
- (\<forall>(r,s)\<in> R - set ws. (nullable r \<longleftrightarrow> nullable s) \<and>
-   (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R)))"
+"pre_bisim as r s = (\<lambda>(ws, ps).
+ (r,s) \<in> set ws \<union> set ps \<and>
+ (\<forall>(r,s)\<in> set ws \<union> set ps. atoms r \<union> atoms s \<subseteq> set as) \<and>
+ (\<forall>(r,s)\<in> set ps. (nullable r \<longleftrightarrow> nullable s) \<and>
+   (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> set ps)))"
 
 text\<open>@{const pre_bisim} is a suitable invariant:
   \<^item> if @{const pre_bisim} holds initially, it also holds after a @{const step}
@@ -333,7 +333,7 @@ text
  simplifications. The authors indicate the rough procedure for such a transformation, but omit
  implementation details. These are not relevant anyways: As long as @{thm lang_norm[no_vars]} is
  fulfilled (a simple structural induction proves it), errors at this step would not 
-  lead to wrong results, but instead impede completeness of the method
+  lead to wrong results, but instead impede completeness of the method.
 
   However, verifying completeness is not necessary for an Isabelle proof method: In the case that
  the method were to hang, a user could always just try a different proof method or provide a
@@ -434,7 +434,7 @@ lemma "lang r = lang s"
 lemma "lang (Star (Atom (CHR ''a''))) \<noteq> lang (Star (Atom (CHR ''b'')))"
   oops \<comment>\<open>correct, but not part of the method\<close>
 
-section\<open>Draft: Testing the limits of termination\<close>
+section\<open>Termination conditions\<close>
 
 (*replace by comments about Not and Inter (extended REs)?*)
 
@@ -452,10 +452,7 @@ The reason is convenience for the user: When only requiring @{class order}, ther
  provide an instance proof for @{class linorder} before being able to use the proof method: For
  its partial correctness, the total order is not needed.
 \<close>
-text\<open>The rest of this section will be reworked if I manage to construct a counterexample for
- termination. It can be ignored for now.
-\<close>
-
+(*<*)
 paragraph \<open>Small example for a non-total order\<close>
 
 text\<open>Via \<^bold>\<open>associativity\<close> and \<^bold>\<open>commutativity\<close>, only finitely many equivalent REs can arise (proof:
@@ -477,7 +474,6 @@ definition "a < b \<longleftrightarrow> False" for a b :: part_ord
 instance
   by standard (simp_all add: less_eq_part_ord_def less_part_ord_def)
 end
-(*<*)
 lemma size_nPlus: "size (nPlus R1 R2) \<le> size R1 + size R2 + 1"
   apply (induction rule: nPlus.induct)
                       apply auto
