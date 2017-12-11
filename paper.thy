@@ -38,7 +38,7 @@ To prove decidability, most textbooks give this algorithm: Convert both REs into
 
   This paper explains this approach, and how it is implemented as of AFP2017 (@{url
  "https://www.isa-afp.org"}). It hopes to give insight why such a succinct development (compared to
- other verified RE equivalent checkers) is beautiful and desirable for interactive proving.
+ other verified RE equivalent checkers) is elegant and desirable for interactive proving.
 \<close>
 
 section\<open>About the reference article\<close>
@@ -47,14 +47,12 @@ text\<open>The purpose of the article @{cite "Krauss-Nipkow-JAR"} is to provide 
   Isabelle/HOL. Users should not have to prove equivalence relations of REs
   themselves, but use a simple automatic command, saving time and work load. Ideally, this command should
  verify every correct equivalence, i.e. be complete. However, as the authors write, completeness
- "merely lets you sleep better".They still argue why completeness holds (following a proof by
- Brzozowski @{cite "Brzozowski"}), but do not verify it. The reason is that proof methods are usually
- used interactively, and for small goals, meaning that a user can just \<^emph>\<open>try\<close> whether it solves the
+ "merely lets you sleep better". They still argue why completeness holds (following a proof by
+ Brzozowski @{cite "Brzozowski"}), but do not verify it. The reason is that proof methods are
+ typically used interactively, and for small goals, meaning that a user can just \<^emph>\<open>try\<close> whether it solves the
  goal.
-
 \<close>
-
-subsection\<open>What \<^emph>\<open>is\<close> in the article\<close>
+paragraph\<open>What \<^emph>\<open>is\<close> in the article\<close>\<comment>\<open>\<close>
 text\<open>Nipkow and Krauss document an elegant development of\<close>
 text\<open>
 \<^item> a proof method for RE equivalences, i.e. goals of the form
@@ -62,7 +60,7 @@ text\<open>
 \<^item> ...using the rule @{prop \<open>lang r1 \<subseteq> lang r2 \<longleftrightarrow> lang (Plus r1 r2) = lang r2\<close>}, also
   for \<open>lang r1 \<subseteq> lang r2\<close> (or \<open>lang r1 \<supseteq> lang r2\<close>)
 \<close>
-subsection\<open>What \<^emph>\<open>is not\<close> in the article\<close>
+paragraph\<open>What \<^emph>\<open>is not\<close> in the article\<close>\<comment>\<open>\<close>
 text\<open>The article stresses that it does \<^emph>\<open>not\<close> provide:\<close>
 text\<open>
 \<^item> verified termination proofs for any of the above
@@ -115,7 +113,7 @@ where
      in if nullable r then Plus r's (deriv a s) else r's)"
 | "deriv a (Star r) = Times (deriv a r) (Star r)"
 
-text\<open>...where @{const nullable}, defined as \<open>nullable r \<longleftrightarrow> [] \<in> lang r\<close>, is computable as well
+text\<open>...where @{const nullable}, defined as \<open>nullable r \<longleftrightarrow> [] \<in> lang r\<close>, is a simple syntactic check
   (omitted here).\<close>
 
 lemma lang_deriv: "lang (deriv a r) = Deriv a (lang r)"
@@ -156,7 +154,8 @@ where
 (*1*) atoms r \<union> atoms s \<subseteq> set as \<and>
 (*2*) (nullable r \<longleftrightarrow> nullable s) \<and>
 (*3*) (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> R))"
-text\<open>@{const nderiv} is a variant of @{const deriv}, explained later.\<close>
+text\<open>@{const nderiv} is a simplifying variant of @{const deriv}, which also fulfills \<open>lang (nderiv a
+  r) = Deriv a (lang r)\<close>, details in section 5.3.\<close>
 lemma bisim_lang_eq:
 assumes "is_bisimulation as ps"
 assumes "(r, s) \<in> ps"
@@ -227,18 +226,32 @@ Such a certificate \<open>(as, ps)\<close> could be obtained from untrusted comp
 However, it turns out that constructing the (already verified) bisimulation is just as
  simple, removing the need to check it separately.\<close>
 
-section\<open>Main loop\<close>
+section\<open>Algorithm\<close>
 
 text\<open>
-We present a simple work set algorithm which iteratively
-  \<^item>identifies RE pairs missing for property 3 (these are the work set)
-  \<^item>adds one of them to the relation, checking that it satisfies property 1 and 2
+We present a simple work set algorithm: A state of the algorithm is a pair \<open>(ws, ps)\<close>, where
+  \<open>ws\<close> is the work set and \<open>ps\<close> the relation we construct. An iteration
+
+  \<^item>moves one pair from \<open>ws\<close> to the \<open>ps\<close>, checking that it satisfies property 2 of @{const
+ is_bisimulation} as defined in section 4.2.
+  \<^item>identifies RE pairs missing for property 3 and adds them to work set. Since @{const nderiv} does
+ not increase the set of atoms, these pairs satisfy property 1.
 
 Initially, we put \<open>(r,s)\<close> in the work set, to ensure that it will be in the constructed relation.
 
 We can then prove that the
  work set becoming empty already guarantees the premises of @{thm[source] bisim_lang_eq}.
 \<close>
+
+subsection\<open>Usage of @{const while_option}\<close>
+text\<open>In order to define the computation without having to prove termination, we use the @{const
+ while_option}-function from Isabelle's standard library. @{const while_option} always
+ has a value associated with it: If no number of iterations falsifies the while-condition, this is
+ @{const None}. However, executed code only uses the unfolding equation @{thm
+ while_option_unfold[no_vars]}, meaning it works just like expected when evaluated.
+\<close>
+
+subsection\<open>While-body\<close>
 
 text\<open>\<open>succs\<close> computes the list of derivated RE pairs for all atoms:\<close>
 
@@ -253,19 +266,12 @@ fun step where "step as (ws, ps) =
     new = [p\<leftarrow>succs as (hd ws) . p \<notin> set ps' \<union> set ws]
   in (new @ tl ws, ps'))"
 
-subsection\<open>Usage of @{const while_option}\<close>
-text\<open>In order to define the computation without having to prove termination, we use the @{const
- while_option}-function from Isabelle's standard library. @{const while_option} always
- has a value associated with it: If no number of iterations falsifies the while-condition, this is
- @{const None}. However, the generated executable code only uses the unfolding equation @{thm
- while_option_unfold[no_vars]}, meaning it works just like an imperative \<^emph>\<open>while\<close> would.
-\<close>
-
-text\<open>The while-condition is the following:\<close>
+subsection\<open>While-condition\<close>
 
 fun test where "test (ws,_) \<longleftrightarrow> (case ws of
   [] \<Rightarrow> False |
-  (p,q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q)"
+  (p,q)#vs \<Rightarrow> nullable p \<longleftrightarrow> nullable q
+)"
 text\<open>The loop terminates
   \<^item> if the worklist is empty (a suitable \<^emph>\<open>bisimulation\<close> was found) or
   \<^item> if two derivs do not agree on nullability (a counterexample was found)\<close>
@@ -284,19 +290,20 @@ where
    (\<forall>a\<in>set as. (nderiv a r, nderiv a s) \<in> set ps)))"
 
 text\<open>@{const pre_bisim} is a suitable invariant:
-  \<^item> if @{const pre_bisim} holds initially, it also holds after a @{const step}
-  \<^item> the negated @{const test} together with the premise that the result  matches the pattern
+  \<^item> It holds initially, when \<open>ws = [(r,s)]\<close> and \<open>ps = {}\<close>.
+  \<^item> If the state satisfies @{const test} and @{const pre_bisim} holds, it also holds after a @{const
+ step}.
+  \<^item> The negated @{const test} together with the premise that the result matches the pattern
  \<open>Some([], _)\<close> (i.e. terminated with an empty work set) implies @{const is_bisimulation}, yielding
- the desired equivalence via rule @{thm[source] bisim_lang_eq}
+ the desired equivalence via rule @{thm[source] bisim_lang_eq}.
 
 This proof is available as @{thm[source] closure_sound} in a formal form.
 \<close>
 
 subsection\<open>Remarks\<close>
 text\<open>
-Note that this is just the computation of the transitive closure of \<open>R\<close> w.r.t @{const
- nderiv}, i.e. the smallest set \<open>R' \<supseteq> R\<close> s.t. \<open>\<And>r1 r2 r3. (r1,r2) \<in> R' \<Longrightarrow> (r2,r3) \<in> R' \<Longrightarrow> (r1,r3) \<in>
- R'\<close>.
+Note that this is the computation of a transitive closure, i.e. the smallest set \<open>R \<supseteq> {(r,s)}\<close>
+ s.t. \<open>\<And>r1 r2. (r1,r2) \<in> R \<Longrightarrow> (nderiv r1, nderiv r2) \<in> R\<close>.
  Thus, it can be expressed using the library's @{const rtrancl_while} specialization of @{const
  while_option}, which is how it is done as of AFP 2017 @{cite "Regular-Sets-AFP"}.
 
@@ -311,7 +318,6 @@ text\<open>REs \<open>r1\<close> and \<open>r2\<close> are \<^emph>\<open>ACI-eq
  \<^emph>\<open>similar\<close> @{cite Brzozowski}, if one can be transformed into the other using only the following
   rules:\<close>
 lemma
-(*<*)  "lang (Plus (Plus a b) c) = lang (Plus a (Plus b c))"(*>*)
   "lang (Times (Times a b) c) = lang (Times a (Times b c))" --\<open>\<^bold>\<open>A\<close>ssociativity\<close>
   "lang (Plus a b) = lang (Plus b a)"                       --\<open>\<^bold>\<open>C\<close>ommutativity\<close>
   "lang (Plus a a) = lang a"                                --\<open>\<^bold>\<open>I\<close>dempotence\<close>
@@ -336,7 +342,7 @@ text
   lead to wrong results, but instead impede completeness of the method.
 
   However, verifying completeness is not necessary for an Isabelle proof method: In the case that
- the method were to hang, a user could always just try a different proof method or provide a
+ the method were to loop infinitely, a user could always just try a different proof method or provide a
  structured proof in Isar.
 \<close>
 
@@ -355,10 +361,6 @@ In the while-step, the filter \<open>p \<notin> set ps' \<union> set ws\<close> 
  (\<open>p\<close> is normalized at that point).
  Brzozowski showed @{cite "Brzozowski"} that this is enough for the work set to become empty
  eventually.
-
-  We will later also need this property:
-
-  @{thm atoms_norm[no_vars]}
 \<close>
 
 section\<open>A proof method for standard-@{type rexp}s\<close>
@@ -367,7 +369,7 @@ text\<open>The authors choose to provide the equivalence checker only specialize
 \<close>
 
 subsection\<open>@{const Equivalence_Checking.check_eqv} for arbitrary (but ordered) atoms\<close>
-text\<open>We reproduce the definition and proof from @{theory Equivalence_Checking}, with additional
+text\<open>We reproduce the definition from @{theory Equivalence_Checking}, with additional
   explanations and @{typ nat} replaced by \<open>'a::order\<close>.
 \<close>
 definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bool" where
@@ -383,6 +385,8 @@ definition check_eqv :: "'a :: order rexp \<Rightarrow> 'a rexp \<Rightarrow> bo
 
 lemma soundness: 
 assumes "check_eqv r s" shows "lang r = lang s"
+  \<comment>\<open>This is follows directly from the above definition and @{thm[source]closure_sound}\<close>
+(*<*)
 proof -
   let ?nr = "norm r" let ?ns = "norm s"
   let ?as = "add_atoms ?nr (add_atoms ?ns [])"
@@ -392,8 +396,9 @@ proof -
     by (rule closure_sound) (auto simp: set_add_atoms dest!: subsetD[OF atoms_norm])
   thus "lang r = lang s" by simp
 qed
+(*>*)
 
-subsection\<open>Defining the proof method\<close>
+subsection\<open>The proof method\<close>
 
 text\<open>We use the @{command method} command from @{doc eisbach} @{cite "Matichuk:2016:EPM:2904234.2904264"},
  an Isabelle tool for proof method definitions, to provide a simple invocation
@@ -411,25 +416,18 @@ text\<open>An informal description: If necessary, unfold @{thm[source]
  subset_eq_to_eq} to obtain an equality goal, then apply the soundness rule (backwards refinement),
  then iterate the closure-check loop (by @{method eval}) until it has the form \<open>Some([],_)\<close>,
  which solves the goal. Repeat this if more subgoals are present.
-
-Examples:
 \<close>
 
-abbreviation "AB \<equiv> Times (Atom (CHR ''a'')) (Atom (CHR ''b''))"
-abbreviation "A_or_B \<equiv> Plus (Atom (CHR ''a'')) (Atom (CHR ''b''))"
-abbreviation "B_or_A \<equiv> Plus (Atom (CHR ''b'')) (Atom (CHR ''a''))"
+paragraph\<open>Examples\<close>
+abbreviation "ab \<equiv> Times (Atom (CHR ''a'')) (Atom (CHR ''b''))"
+abbreviation "a_p_b \<equiv> Plus (Atom (CHR ''a'')) (Atom (CHR ''b''))"
+abbreviation "b_p_a \<equiv> Plus (Atom (CHR ''b'')) (Atom (CHR ''a''))"
 
 lemma
-  "lang (Times (Star (Plus One AB)) A_or_B) = lang (Times (Star (Plus AB One)) A_or_B)"
-  "lang (Times (Star (Plus Zero AB)) B_or_A) \<supseteq> lang (Times (Star (Plus AB One)) A_or_B)"
-  "lang (Times (Star (Plus One AB)) A_or_B) \<subseteq> lang (Times (Star (Plus AB One)) A_or_B)"
-  by rexp
-
-abbreviation "r \<equiv> Plus AB (Plus (Star B_or_A) (Star A_or_B))"
-abbreviation "s \<equiv> Plus (Plus (Star AB) (Star A_or_B)) B_or_A"
-
-lemma "lang r = lang s"
-  by rexp
+  "lang (Times (Star (Plus One ab)) a_p_b) = lang (Times (Star ab) b_p_a)"
+  "lang (Times (Star ab) b_p_a) \<supseteq> lang (Times (Star (Plus ab One)) a_p_b)"
+  "lang (Times (Star (Plus ab One)) ab) \<subseteq> lang (Star (Plus One ab))"
+  by rexp \<comment>\<open>These are solved very fast\<close>
 
 lemma "lang (Star (Atom (CHR ''a''))) \<noteq> lang (Star (Atom (CHR ''b'')))"
   oops \<comment>\<open>correct, but not part of the method\<close>
@@ -512,18 +510,6 @@ proof -
     using le_trans size_norm by blast
   ultimately
   show ?thesis oops
-
-value "(norm ^^ 1) r"
-value "(norm ^^ 2) r"
-value "(norm ^^ 3) r"
-value "(norm ^^ 4) r"
-value "(norm ^^ 5) r"
-
-value "(norm ^^ 1) s"
-value "(norm ^^ 2) s"
-value "(norm ^^ 3) s"
-value "(norm ^^ 4) s"
-value "(norm ^^ 5) s"
 
 value "let
     nr = norm (Times a (Times a a));
