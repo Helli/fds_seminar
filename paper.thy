@@ -29,7 +29,7 @@ that solving goals of the above form can be reduced to a mere computation. Thus,
  increasing readability and maintainability.
 
 To prove decidability, most textbooks give this algorithm: Convert both REs into automata,
- determinise and minimise the result and check for equality (disregarding state identifiers).
+ determinize and minimize the result and check for equality (disregarding state identifiers).
  However, while correctness of this approach is obvious for CS graduates, verifying it is tedious,
  mostly because the formalization of all the needed automata theory requires a lot of work. Nipkow
  and Krauss @{cite "Krauss-Nipkow-JAR"} follow an alternative approach first described by Brzozowski
@@ -318,8 +318,8 @@ lemma
   by (auto simp: conc_assoc)
 
 text\<open>In the following, we will call a RE \<^emph>\<open>normalized\<close> if
-  \<^item> nested concatenations are parenthesised to the right
-  \<^item> nested choices are also parenthesised to the right and also sorted:
+  \<^item> nested concatenations are parenthesized to the right
+  \<^item> nested choices are also parenthesized to the right and also sorted:
     Atoms first, then @{const Star}-terms, then concatenations
     (This order is arbitrary, but fixed)
   \<^item> within nested choices, every subterm occurs at most once.
@@ -329,7 +329,7 @@ identified.
 \<close>
 text
 \<open>The first step of the equivalence checker must bring the input expressions into a normal form,
- such that ACI-equilavent terms map to the same normal form. It also performs other minor
+ such that ACI-equivalent terms map to the same normal form. It also performs other minor
  simplifications. The authors indicate the rough procedure for such a transformation, but omit
  implementation details. These are not relevant anyways: As long as @{thm lang_norm[no_vars]} is
  fulfilled (a simple structural induction proves it), errors at this step would not 
@@ -362,7 +362,7 @@ In the while-step, the filter \<open>p \<notin> set ps' \<union> set ws\<close> 
 \<close>
 
 section\<open>A proof method for standard-@{type rexp}s\<close>
-text\<open>The authors choose to provide the equivalence checker only specialised to @{typ "nat rexp"},
+text\<open>The authors choose to provide the equivalence checker only specialized to @{typ "nat rexp"},
  however, it also works for an arbitrary \<open>'a::order rexp\<close>:
 \<close>
 
