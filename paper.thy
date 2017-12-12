@@ -232,9 +232,9 @@ text\<open>
 We present a simple work set algorithm: A state of the algorithm is a pair \<open>(ws, ps)\<close>, where
   \<open>ws\<close> is the work set and \<open>ps\<close> the relation we construct. An iteration
 
-  \<^item>moves one pair from \<open>ws\<close> to the \<open>ps\<close>, checking that it satisfies property 2 of @{const
+  \<^item>moves one pair from \<open>ws\<close> to \<open>ps\<close>, checking that it satisfies property 2 of @{const
  is_bisimulation} as defined in section 4.2.
-  \<^item>identifies RE pairs missing for property 3 and adds them to work set. Since @{const nderiv} does
+  \<^item>identifies RE pairs missing for property 3 and adds them to \<open>ws\<close>. Since @{const nderiv} does
  not increase the set of atoms, these pairs satisfy property 1.
 
 Initially, we put \<open>(r,s)\<close> in the work set, to ensure that it will be in the constructed relation.
@@ -418,7 +418,7 @@ text\<open>An informal description: If necessary, unfold @{thm[source]
  which solves the goal. Repeat this if more subgoals are present.
 \<close>
 
-paragraph\<open>Examples\<close>
+paragraph\<open>Examples\<close>\<comment>\<open>\<close>
 abbreviation "ab \<equiv> Times (Atom (CHR ''a'')) (Atom (CHR ''b''))"
 abbreviation "a_p_b \<equiv> Plus (Atom (CHR ''a'')) (Atom (CHR ''b''))"
 abbreviation "b_p_a \<equiv> Plus (Atom (CHR ''b'')) (Atom (CHR ''a''))"
